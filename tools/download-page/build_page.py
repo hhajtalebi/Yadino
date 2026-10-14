@@ -204,7 +204,7 @@ font-size:1.25rem;line-height:1.5;box-shadow:0 6px 16px rgba(201,162,39,.35)}
 .qr{display:flex;gap:18px;align-items:center}
 .qr .code{flex:0 0 auto;background:#fff;border-radius:12px;padding:6px;line-height:0}
 .qr .code svg{width:150px;height:150px}
-@media (max-width:640px){.qr{display:none}}
+@media (max-width:640px) and (pointer:coarse){.qr{display:none}}
 ol.steps{padding-inline-start:22px;margin:0}
 ol.steps li{margin-bottom:8px}
 ul{padding-inline-start:22px;margin:0}
@@ -278,7 +278,10 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
         "<br>بزرگ‌تر و کندتر؛ با همان کلید امضا شده و روی همین نسخه هم نصب می‌شود.</div>"
         for f in info.others
     )
-    download = f'<a class="btn" href="release/{esc(primary.name)}" download>دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>'
+    direct = page_url.rstrip("/") + "/release/" + primary.name
+    download = (f'<a class="btn" href="release/{esc(primary.name)}" download>دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>'
+                f'<div class="alt">اگر دانلود شروع نشد (مثلاً وقتی صفحه داخل یک قاب نمایش داده می‌شود)، این لینک را در یک زبانه تازه یا روی گوشی باز کنید:'
+                f'<br><a class="mono" href="{esc(direct)}" target="_blank" rel="noopener">{esc(direct)}</a></div>')
     payload = script = ""
     if standalone:
         apk = (root / "release" / primary.name).read_bytes()
