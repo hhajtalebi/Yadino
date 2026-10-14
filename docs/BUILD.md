@@ -116,6 +116,22 @@ python3 tools/download-page/build_page.py --standalone   # release/yadino-<نس�
 - **انتشار با GitHub Pages**: در تنظیمات مخزن ← Pages، منبع را «Deploy from a branch»، شاخه‌ای که `index.html` در آن است و پوشه `/ (root)` بگذارید. نشانی صفحه `https://hhajtalebi.github.io/Yadino/` است و APKها از همان نشانی (`release/…`) دانلود می‌شوند. فایل `.nojekyll` باعث می‌شود فایل‌ها همان‌طور که هستند منتشر شوند.
 - پس از هر انتشار و به‌روز کردن `release/`، صفحه را دوباره بسازید.
 
+## انتشار در گیت‌هاب (Releases)
+
+هر نسخه با یک برچسب `v<نسخه>` (مثلاً `v1.4.0`) در بخش Releases مخزن منتشر می‌شود و این فایل‌ها به آن پیوست می‌شوند: APK اصلی، APK اشکال‌زدایی، صفحه دریافت تک‌فایلی و `SHA256SUMS.txt`. نشانی دانلود هر فایل دائمی است، مثلاً:
+
+```
+https://github.com/hhajtalebi/Yadino/releases/download/v1.4.0/yadino-1.4.0-release.apk
+```
+
+با GitHub CLI:
+
+```bash
+gh release create v1.4.0 --target main --title "یادینو ۱٫۴٫۰" --notes-file یادداشت-انتشار.md \
+  release/yadino-1.4.0-release.apk release/yadino-1.4.0-debug.apk \
+  release/yadino-1.4.0-download.html release/SHA256SUMS.txt
+```
+
 ## پایگاه داده و مهاجرت‌ها
 
 - طرح‌واره (Schema) هر نسخه پایگاه داده با KSP در `app/schemas/` خروجی گرفته و در Git ثبت می‌شود.

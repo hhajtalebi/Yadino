@@ -6,9 +6,7 @@
 
 یادینو برای مدیریت برنامه روزانه، کارها، یادداشت‌ها، اهداف و عادت‌ها ساخته شده است. همه اطلاعات روی خود دستگاه ذخیره می‌شود، بدون اینترنت و بدون ثبت‌نام کار می‌کند و رابط کاربری آن کاملاً فارسی و راست‌به‌چپ است.
 
-> *Yadino is a Persian-first, offline-first Android planner (tasks, notes with checklists, goals, habits, reusable day/week plan templates) built on an exact Solar Hijri calendar, with a drag-to-reschedule day timeline, read-only events of the device calendars, eight home-screen widgets, optional encrypted backups (file, folder, Google Drive) and CSV export. Kotlin · Jetpack Compose · Material 3 · Room · DataStore · WorkManager.*
-
-> 📲 **دریافت نسخه آزمایشی (اندروید ۸ و بالاتر):** [صفحه دریافت و راهنمای نصب](https://hhajtalebi.github.io/Yadino/) · [دانلود مستقیم APK](release/yadino-1.4.0-release.apk)
+> 📲 **دریافت آخرین نسخه (اندروید ۸ و بالاتر):** [بخش انتشارها (Releases) در گیت‌هاب](https://github.com/hhajtalebi/Yadino/releases/latest) · [دانلود مستقیم APK](https://github.com/hhajtalebi/Yadino/releases/download/v1.4.0/yadino-1.4.0-release.apk) · [صفحه دریافت و راهنمای نصب](https://hhajtalebi.github.io/Yadino/)
 
 ---
 
@@ -99,7 +97,9 @@
 
 ## دریافت و نصب
 
-ساده‌ترین راه، [صفحه دریافت](https://hhajtalebi.github.io/Yadino/) است: دکمه دانلود، راهنمای نصب قدم‌به‌قدم، کد QR برای باز کردن صفحه روی گوشی، فهرست موارد قابل آزمون و راهنمای گزارش خطا. این صفحه (`index.html`) با GitHub Pages منتشر می‌شود؛ فعال‌سازی آن یک بار از تنظیمات مخزن انجام می‌شود ([راهنما](docs/BUILD.md)). فایل‌های APK در پوشه [`release/`](release/) هم هستند:
+آخرین نسخه همیشه در [بخش انتشارها (Releases) گیت‌هاب](https://github.com/hhajtalebi/Yadino/releases/latest) است؛ فایل‌های APK، صفحه دریافت تک‌فایلی و `SHA256SUMS.txt` آنجا پیوست شده‌اند و روی هر گوشی با مرورگر دانلود می‌شوند.
+
+راه دیگر، [صفحه دریافت](https://hhajtalebi.github.io/Yadino/) است: دکمه دانلود، راهنمای نصب قدم‌به‌قدم، کد QR برای باز کردن صفحه روی گوشی، فهرست موارد قابل آزمون و راهنمای گزارش خطا. این صفحه (`index.html`) با GitHub Pages منتشر می‌شود؛ فعال‌سازی آن یک بار از تنظیمات مخزن انجام می‌شود ([راهنما](docs/BUILD.md)). فایل‌های APK در پوشه [`release/`](release/) هم هستند:
 
 | فایل | توضیح |
 |---|---|

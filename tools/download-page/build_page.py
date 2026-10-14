@@ -34,6 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "hhajtalebi/Yadino"
 PAGES_URL = "https://hhajtalebi.github.io/Yadino/"
+RELEASES_URL = f"https://github.com/{REPO}/releases"
 PACKAGE = "ir.yadino.app"
 # Certificate of tools/offline-build/debug.keystore, the public repository key that signs the
 # APKs in release/ (see docs/BUILD.md). Checked with apksigner when the toolchain is present.
@@ -318,15 +319,18 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
         for f in info.others
     )
     direct = page_url.rstrip("/") + "/release/" + primary.name
+    # the same file attached to the GitHub release of this version: a permanent address
+    released = f"{RELEASES_URL}/download/v{info.version}/{primary.name}"
     download = (f'<a class="btn" href="release/{esc(primary.name)}" download>دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>'
                 f'<div class="alt">اگر دانلود شروع نشد (مثلاً وقتی صفحه داخل یک قاب نمایش داده می‌شود)، این لینک را در یک زبانه تازه یا روی گوشی باز کنید:'
-                f'<br><a class="mono" href="{esc(direct)}" target="_blank" rel="noopener">{esc(direct)}</a></div>')
+                f'<br><a class="mono" href="{esc(direct)}" target="_blank" rel="noopener">{esc(direct)}</a>'
+                f'<br>همین فایل در <a href="{esc(released)}" target="_blank" rel="noopener">انتشار نسخه {version_fa} در گیت‌هاب</a> هم هست.</div>')
     payload = script = ""
     if standalone:
         apk = (root / "release" / primary.name).read_bytes()
         others = (f'<div class="alt">این صفحه خود برنامه را در خود دارد و بدون اینترنت کار می‌کند. '
                   'اگر با زدن دکمه دانلود شروع نشد، خود همین فایل HTML را ذخیره کنید و در مرورگر (مثل Chrome) باز کنید.<br>'
-                  f'نسخه اشکال‌زدایی و فایل‌های دیگر در <a href="https://github.com/{REPO}/tree/{ref}/release">پوشه release مخزن گیت‌هاب</a> هستند.</div>')
+                  f'نسخه اشکال‌زدایی و فایل‌های دیگر در <a href="{RELEASES_URL}/tag/v{info.version}">انتشار نسخه {version_fa} در گیت‌هاب</a> هستند.</div>')
         download = (f'<a class="btn" id="dl" href="#" download="{esc(primary.name)}">دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>'
                     '<p id="dl-error" class="note" role="alert" hidden></p>'
                     '<noscript><p class="note">برای دانلود، این فایل را در یک مرورگر (مثل Chrome) باز کنید؛ جاوااسکریپت باید فعال باشد.</p></noscript>')
@@ -467,7 +471,7 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
 </main>
 <footer>
   یادینو هیچ داده‌ای جمع‌آوری یا ارسال نمی‌کند.<br>
-  <a href="https://github.com/{REPO}/tree/{ref}">کد منبع</a>·<a href="{blob}/CHANGELOG.md">تغییرات نسخه‌ها</a>·<a href="{blob}/docs/TEST_REPORT.md">گزارش آزمون</a>·<a href="{blob}/ROADMAP.md">نقشه راه</a>
+  <a href="https://github.com/{REPO}/tree/{ref}">کد منبع</a>·<a href="{blob}/CHANGELOG.md">تغییرات نسخه‌ها</a>·<a href="{blob}/docs/TEST_REPORT.md">گزارش آزمون</a>·<a href="{blob}/ROADMAP.md">نقشه راه</a>·<a href="{RELEASES_URL}">همه نسخه‌ها</a>
 </footer>
 {tail}</body>
 </html>

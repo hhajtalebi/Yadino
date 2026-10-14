@@ -4,7 +4,7 @@
 
 فایل [`android-ci.yml`](android-ci.yml) یک گردش‌کار کامل برای گیت‌هاب است:
 
-1. **build**: اجرای ۱۰۸ آزمون واحد JVM، ساخت APK اشکال‌زدایی و بررسی Lint؛ APK و گزارش‌ها به‌عنوان Artifact ذخیره می‌شوند.
+1. **build**: اجرای همه آزمون‌های واحد JVM، ساخت APK اشکال‌زدایی و انتشار و بررسی Lint؛ فایل‌های APK و گزارش‌ها به‌عنوان Artifact ذخیره می‌شوند.
 2. **instrumented**: اجرای آزمون‌های ابزاری روی شبیه‌سازهای اندروید ۸ (API 26)، ۱۲ (API 31) و ۱۵ (API 35).
 
 ## چرا این فایل در `.github/workflows` نیست؟
@@ -21,7 +21,7 @@
 mkdir -p .github/workflows
 cp docs/ci/android-ci.yml .github/workflows/android-ci.yml
 git add .github/workflows/android-ci.yml
-git commit -m "Add Android CI workflow"
+git commit -m "افزودن گردش‌کار CI اندروید"
 git push
 ```
 

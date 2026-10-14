@@ -1,6 +1,6 @@
-# Yadino – GitHub Actions workflow (install as .github/workflows/android-ci.yml)
-# Builds debug and release APKs with Gradle, runs JVM unit tests and Lint, and runs the
-# instrumented tests (including an end-to-end smoke test of every screen) on emulators.
+# یادینو – گردش‌کار GitHub Actions (این فایل را در .github/workflows/android-ci.yml قرار دهید)
+# با Gradle نسخه‌های اشکال‌زدایی و انتشار را می‌سازد، آزمون‌های واحد JVM و Lint را اجرا می‌کند
+# و آزمون‌های ابزاری (از جمله آزمون دود سرتاسری همه صفحه‌ها) را روی شبیه‌سازها اجرا می‌کند.
 name: Android CI
 
 on:
