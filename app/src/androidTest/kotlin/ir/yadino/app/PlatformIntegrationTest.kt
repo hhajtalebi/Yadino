@@ -11,7 +11,9 @@ import ir.yadino.app.notifications.ReminderIds
 import ir.yadino.app.notifications.ReminderReceiver
 import ir.yadino.app.widget.CalendarWidgetProvider
 import ir.yadino.app.widget.ClockWidgetProvider
+import ir.yadino.app.widget.CountdownWidgetProvider
 import ir.yadino.app.widget.GoalWidgetProvider
+import ir.yadino.app.widget.HabitsWidgetProvider
 import ir.yadino.app.widget.QuickNoteWidgetProvider
 import ir.yadino.domain.model.Ids
 import ir.yadino.domain.model.Task
@@ -36,13 +38,18 @@ class PlatformIntegrationTest {
             Bundle().apply { putInt("appWidgetMinWidth", 300); putInt("appWidgetMaxHeight", 150) },
             Bundle().apply { putInt("appWidgetMinWidth", 300); putInt("appWidgetMaxHeight", 400) },
         )
-        val providers = listOf(CalendarWidgetProvider(), ClockWidgetProvider(), GoalWidgetProvider(), QuickNoteWidgetProvider())
+        val providers = listOf(CalendarWidgetProvider(), ClockWidgetProvider(), GoalWidgetProvider(), QuickNoteWidgetProvider(), CountdownWidgetProvider())
         for (provider in providers) {
             for (options in sizes) {
                 val views = provider.render(context, app, 4242, options)
                 assertNotNull(views.apply(context, FrameLayout(context)))
             }
         }
+        // Collection widgets bind their list only inside a real AppWidgetHostView:
+        // render every size, inflate the small (list-free) layout.
+        val habits = HabitsWidgetProvider()
+        for (options in sizes) assertNotNull(habits.render(context, app, 4243, options))
+        assertNotNull(habits.render(context, app, 4243, sizes[0]).apply(context, FrameLayout(context)))
     }
 
     @Test

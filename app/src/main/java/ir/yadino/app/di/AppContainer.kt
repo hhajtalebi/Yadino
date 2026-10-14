@@ -4,9 +4,10 @@ import android.app.Application
 import ir.yadino.app.core.AppClock
 import ir.yadino.app.core.ErrorReporter
 import ir.yadino.app.data.backup.BackupManager
-import ir.yadino.app.data.backup.GoogleDriveClient
 import ir.yadino.app.data.backup.BackupPasswordStore
+import ir.yadino.app.data.backup.GoogleDriveClient
 import ir.yadino.app.data.backup.SecureTokenStore
+import ir.yadino.app.data.export.SpreadsheetExporter
 import ir.yadino.app.data.local.YadinoDatabase
 import ir.yadino.app.data.repository.CategoryRepository
 import ir.yadino.app.data.repository.DataRepository
@@ -88,6 +89,7 @@ class AppContainer(val app: Application, val appScope: CoroutineScope) {
     val data by lazy { DataRepository(database, { app.getDatabasePath(YadinoDatabase.NAME) }, clock, effects) }
     val backupPasswords = BackupPasswordStore(tokenStore, appState)
     val backup by lazy { BackupManager(app, data, settings, appState, clock, drive, backupPasswords) }
+    val spreadsheet by lazy { SpreadsheetExporter(app, data, settings, clock) }
 
     /** Recomputes all alarms from the database (boot, time change, settings change, restore). */
     suspend fun rescheduleAllReminders() {

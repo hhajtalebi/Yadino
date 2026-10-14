@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -76,6 +77,7 @@ import ir.yadino.app.data.backup.DriveResult
 import ir.yadino.app.data.backup.ExportResult
 import ir.yadino.app.data.backup.FolderBackupResult
 import ir.yadino.app.data.backup.TextReadResult
+import ir.yadino.app.data.export.SpreadsheetExporter
 import ir.yadino.app.data.repository.DataStats
 import ir.yadino.app.data.settings.BackupStatus
 import ir.yadino.app.di.AppContainer
@@ -145,6 +147,15 @@ class DataViewModel(c: AppContainer) : SettingsViewModel(c) {
             is ExportResult.Failure -> message(UiMessage.Text(R.string.msg_backup_failed_reason, listOf(r.reason)))
         }
         refresh()
+    }
+
+    fun suggestedCsvName() = c.spreadsheet.suggestedFileName()
+
+    fun exportCsv(uri: Uri) = busy {
+        when (val r = c.spreadsheet.exportTo(uri)) {
+            is SpreadsheetExporter.Result.Success -> message(UiMessage.Text(R.string.msg_csv_saved, listOf(number(r.rows))))
+            is SpreadsheetExporter.Result.Failure -> message(UiMessage.Text(R.string.msg_csv_failed, listOf(r.reason)))
+        }
     }
 
     /** Validates [text]; encrypted backups open the password prompt when needed. */
@@ -346,6 +357,7 @@ fun SettingsDataScreen() {
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> if (uri != null) vm.export(uri) }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) vm.import(uri) }
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) vm.chooseFolder(uri) }
+    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri -> if (uri != null) vm.exportCsv(uri) }
     LaunchedEffect(Unit) { vm.refresh() }
     val zone = c.clock.zone()
     val frequencyLabel: @Composable (AutoBackupFrequency) -> String = {
@@ -409,6 +421,12 @@ fun SettingsDataScreen() {
                 SettingRow(stringResource(R.string.safety_snapshot), stringResource(R.string.safety_snapshot_desc, at?.let { fmt.dateTime(Instant.ofEpochMilli(it), zone) } ?: f.name),
                     Icons.Default.History, enabled = !busy, onClick = { vm.restoreSnapshot(f) })
             }
+        }
+        SettingsGroup(stringResource(R.string.group_spreadsheet_export)) {
+            SettingRow(stringResource(R.string.export_csv), stringResource(R.string.export_csv_desc), Icons.Default.TableChart, enabled = !busy, onClick = {
+                // The CSV file is never encrypted: say so first when the user protects backups.
+                if (passwordState == BackupPasswordStore.State.OFF) csvLauncher.launch(vm.suggestedCsvName()) else confirm = "csv"
+            })
         }
         SettingsGroup(stringResource(R.string.group_folder_backup)) {
             val st = status
@@ -478,6 +496,8 @@ fun SettingsDataScreen() {
             stringResource(R.string.turn_off), onConfirm = { vm.disableEncryption() }, onDismiss = { confirm = null }, destructive = true)
         "folder" -> ConfirmDialog(stringResource(R.string.folder_backup_forget), stringResource(R.string.folder_backup_forget_confirm),
             stringResource(R.string.forget), onConfirm = { vm.clearFolder() }, onDismiss = { confirm = null })
+        "csv" -> ConfirmDialog(stringResource(R.string.export_csv), stringResource(R.string.export_csv_unencrypted_confirm),
+            stringResource(R.string.export_csv_continue), onConfirm = { csvLauncher.launch(vm.suggestedCsvName()) }, onDismiss = { confirm = null })
     }
     if (passwordDialog) {
         SetPasswordDialog(
