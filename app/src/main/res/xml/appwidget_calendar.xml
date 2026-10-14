@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Event-driven widget: updatePeriodMillis=0, refreshed on data/settings changes and at midnight. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:configure="ir.yadino.app.widget.WidgetConfigActivity"
     android:description="@string/widget_calendar_desc"
     android:initialLayout="@layout/widget_loading"
@@ -15,4 +16,5 @@
     android:targetCellHeight="3"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"
-    android:widgetFeatures="reconfigurable|configuration_optional" />
+    android:widgetFeatures="reconfigurable|configuration_optional"
+    tools:ignore="UnusedAttribute" />

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layoutDirection="rtl">
+    android:layoutDirection="rtl"
+    tools:ignore="HardcodedText,NestedWeights,TooManyViews">
 
     <ImageView
         android:id="@+id/widget_bg"
@@ -22,6 +24,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <ImageView
                 android:id="@+id/cal_prev"
@@ -53,7 +56,7 @@
                     android:fontFamily="@font/vazirmatn"
                     android:text=""
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp"
+                    android:textSize="12sp"
                     android:textStyle="normal"
                     android:textDirection="rtl" />
             </LinearLayout>
@@ -70,6 +73,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/cal_head_0"
@@ -80,7 +84,7 @@
                 android:gravity="center"
                 android:text="ش"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
             <TextView
                 android:id="@+id/cal_head_1"
                 android:layout_width="0dp"
@@ -90,7 +94,7 @@
                 android:gravity="center"
                 android:text="ی"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
             <TextView
                 android:id="@+id/cal_head_2"
                 android:layout_width="0dp"
@@ -100,7 +104,7 @@
                 android:gravity="center"
                 android:text="د"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
             <TextView
                 android:id="@+id/cal_head_3"
                 android:layout_width="0dp"
@@ -110,7 +114,7 @@
                 android:gravity="center"
                 android:text="س"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
             <TextView
                 android:id="@+id/cal_head_4"
                 android:layout_width="0dp"
@@ -120,7 +124,7 @@
                 android:gravity="center"
                 android:text="چ"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
             <TextView
                 android:id="@+id/cal_head_5"
                 android:layout_width="0dp"
@@ -130,7 +134,7 @@
                 android:gravity="center"
                 android:text="پ"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
             <TextView
                 android:id="@+id/cal_head_6"
                 android:layout_width="0dp"
@@ -140,12 +144,13 @@
                 android:gravity="center"
                 android:text="ج"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <LinearLayout
                 android:id="@+id/cal_cell_0"
@@ -170,7 +175,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_1"
@@ -195,7 +201,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_2"
@@ -220,7 +227,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_3"
@@ -245,7 +253,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_4"
@@ -270,7 +279,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_5"
@@ -295,7 +305,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_6"
@@ -320,13 +331,15 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <LinearLayout
                 android:id="@+id/cal_cell_7"
@@ -351,7 +364,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_8"
@@ -376,7 +390,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_9"
@@ -401,7 +416,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_10"
@@ -426,7 +442,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_11"
@@ -451,7 +468,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_12"
@@ -476,7 +494,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_13"
@@ -501,13 +520,15 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <LinearLayout
                 android:id="@+id/cal_cell_14"
@@ -532,7 +553,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_15"
@@ -557,7 +579,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_16"
@@ -582,7 +605,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_17"
@@ -607,7 +631,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_18"
@@ -632,7 +657,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_19"
@@ -657,7 +683,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_20"
@@ -682,13 +709,15 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <LinearLayout
                 android:id="@+id/cal_cell_21"
@@ -713,7 +742,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_22"
@@ -738,7 +768,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_23"
@@ -763,7 +794,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_24"
@@ -788,7 +820,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_25"
@@ -813,7 +846,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_26"
@@ -838,7 +872,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_27"
@@ -863,13 +898,15 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <LinearLayout
                 android:id="@+id/cal_cell_28"
@@ -894,7 +931,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_29"
@@ -919,7 +957,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_30"
@@ -944,7 +983,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_31"
@@ -969,7 +1009,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_32"
@@ -994,7 +1035,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_33"
@@ -1019,7 +1061,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_34"
@@ -1044,13 +1087,15 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:baselineAligned="false"
             android:orientation="horizontal">
             <LinearLayout
                 android:id="@+id/cal_cell_35"
@@ -1075,7 +1120,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_36"
@@ -1100,7 +1146,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_37"
@@ -1125,7 +1172,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_38"
@@ -1150,7 +1198,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_39"
@@ -1175,7 +1224,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_40"
@@ -1200,7 +1250,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/cal_cell_41"
@@ -1225,7 +1276,8 @@
                     android:includeFontPadding="false"
                     android:text=" "
                     android:textColor="@color/widget_accent"
-                    android:textSize="9sp" />
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

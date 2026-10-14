@@ -34,6 +34,7 @@ python3 build.py test                  # JVM unit tests (calendar, domain, app)
 python3 build.py apk                   # debug APK  -> build/offline/yadino-<v>-debug.apk
 python3 build.py androidtest           # compiles instrumented tests (no device needed)
 python3 build.py linkcheck             # binary compatibility check of the shrunk app
+python3 build.py lint                  # Android Lint (cmdline-tools) -> build/offline/lint/{lint.txt,lint.html,lint.xml}
 YADINO_KEYSTORE=… YADINO_KEYSTORE_PASSWORD=… python3 build.py release
 ```
 

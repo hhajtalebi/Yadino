@@ -100,6 +100,7 @@ keytool -genkeypair -v -keystore yadino-release.jks -storetype PKCS12 \
 ```
 aapt2 (منابع) → kapt + Room (کد پایگاه داده) → kotlinc + Compose Compiler → javac
 → R8 (dex، کوچک‌سازی) → zipalign → apksigner (امضای v2/v3)
+(جداگانه: Android Lint رسمی از بسته cmdline-tools)
 ```
 
 همه ورودی‌ها از آینه‌های گیت‌هاب AOSP و مخازن رسمی با نسخه‌های قفل‌شده دریافت می‌شوند:
@@ -111,6 +112,7 @@ python3 tools/offline-build/build.py test        # آزمون‌های JVM
 python3 tools/offline-build/build.py apk         # APK اشکال‌زدایی
 python3 tools/offline-build/build.py androidtest # کامپایل آزمون‌های ابزاری
 python3 tools/offline-build/build.py linkcheck   # بررسی سازگاری باینری کتابخانه‌ها
+python3 tools/offline-build/build.py lint        # Android Lint (گزارش‌ها در build/offline/lint)
 YADINO_KEYSTORE=… YADINO_KEYSTORE_PASSWORD=… python3 tools/offline-build/build.py release
 ```
 

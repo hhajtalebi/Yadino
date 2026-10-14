@@ -45,26 +45,11 @@ private fun AppSettings.isWeekend(date: LocalDate) = date.dayOfWeek == DayOfWeek
 // 1. Jalali calendar widget (month grid with markers)
 // =============================================================================================
 class CalendarWidgetProvider : YadinoWidgetProvider() {
-    private class Ids(private val context: Context) {
-        private fun id(name: String): Int = context.resources.getIdentifier(name, "id", context.packageName)
-        val cells = IntArray(42) { id("cal_cell_$it") }
-        val days = IntArray(42) { id("cal_day_$it") }
-        val dots = IntArray(42) { id("cal_dot_$it") }
-        val heads = IntArray(7) { id("cal_head_$it") }
-    }
-
-    companion object {
-        @Volatile
-        private var ids: Ids? = null
-        private fun ids(context: Context): Ids = ids ?: Ids(context.applicationContext).also { ids = it }
-    }
-
     override suspend fun render(context: Context, app: YadinoApplication, widgetId: Int, options: Bundle?): RemoteViews {
-        val ids = ids(context)
-        val CELL_IDS = ids.cells
-        val DAY_IDS = ids.days
-        val DOT_IDS = ids.dots
-        val HEAD_IDS = ids.heads
+        val CELL_IDS = CalendarWidgetIds.CELLS
+        val DAY_IDS = CalendarWidgetIds.DAYS
+        val DOT_IDS = CalendarWidgetIds.DOTS
+        val HEAD_IDS = CalendarWidgetIds.HEADS
         val c = app.container
         val settings = c.settings.awaitLoaded()
         val config = c.widgetConfigs.get(widgetId)
@@ -82,7 +67,7 @@ class CalendarWidgetProvider : YadinoWidgetProvider() {
             v.text(R.id.w_weekday, PersianNames.weekday(today.dayOfWeek), p.text, 14f, s, p)
             v.text(R.id.w_month, fmt.monthYear(j), p.secondary, 12f, s, p)
             val occ = IranianOccasions.occasionsOf(j, settings.occasionDisplay, settings.lunarAdjustment).firstOrNull()
-            v.text(R.id.w_occasion, occ?.title ?: if (config.showGregorian) fmt.gregorian(today) else "", p.secondary, 11f, s, p)
+            v.text(R.id.w_occasion, occ?.title ?: if (config.showGregorian) fmt.gregorian(today) else "", p.secondary, 12f, s, p)
             v.setOnClickPendingIntent(R.id.widget_root, openApp(context, Route.Calendar(today.toEpochDay()), widgetId * 100))
             return v
         }
@@ -97,7 +82,7 @@ class CalendarWidgetProvider : YadinoWidgetProvider() {
             PersianNames.gregorianMonth(a.monthValue) + (if (a.monthValue != b.monthValue) " – " + PersianNames.gregorianMonth(b.monthValue) else "") +
                 " " + fmt.number(b.year)
         } else ""
-        v.text(R.id.cal_subtitle, gregLabel, p.secondary, 11f, s, p)
+        v.text(R.id.cal_subtitle, gregLabel, p.secondary, 12f, s, p)
         v.color(R.id.cal_prev, "setColorFilter", p.text, p)
         v.color(R.id.cal_next, "setColorFilter", p.text, p)
         v.setOnClickPendingIntent(R.id.cal_prev, widgetAction(context, WidgetActionReceiver.ACTION_CAL_PREV, widgetId, widgetId * 100 + 90))
@@ -106,7 +91,7 @@ class CalendarWidgetProvider : YadinoWidgetProvider() {
 
         val days = WeekMath.orderedDays(settings.firstDayOfWeek)
         days.forEachIndexed { i, d ->
-            v.text(HEAD_IDS[i], PersianNames.weekdayShort(d), if (d == DayOfWeek.FRIDAY) p.holiday else p.secondary, 11f, s, p)
+            v.text(HEAD_IDS[i], PersianNames.weekdayShort(d), if (d == DayOfWeek.FRIDAY) p.holiday else p.secondary, 12f, s, p)
         }
         val grid = WeekMath.monthGrid(month, settings.firstDayOfWeek)
         val from = grid.first().date.toLocalDate()
@@ -173,7 +158,7 @@ abstract class TaskCollectionWidget : ListWidgetProvider() {
         val v = RemoteViews(context.packageName, R.layout.widget_list)
         v.applyBackground(p)
         v.text(R.id.w_title, title(context, filter), p.text, 15f, s, p)
-        v.text(R.id.w_subtitle, fmt.date(today, DateFormatStyle.MEDIUM), p.secondary, 11f, s, p)
+        v.text(R.id.w_subtitle, fmt.date(today, DateFormatStyle.MEDIUM), p.secondary, 12f, s, p)
         v.text(R.id.w_empty, context.getString(R.string.widget_empty_tasks), p.secondary, 13f, s, p)
         v.color(R.id.w_add, "setColorFilter", p.accent, p)
         v.setOnClickPendingIntent(R.id.w_add, add)
@@ -275,7 +260,7 @@ private class TaskListFactory(private val context: Context, private val widgetId
             if (TaskFilters.isOverdue(t, today)) add(context.getString(R.string.overdue_short))
             if (t.kind == TaskKind.EVENT) add(context.getString(R.string.kind_event))
         }.joinToString(" • ")
-        v.text(R.id.item_meta, meta, if (TaskFilters.isOverdue(t, today)) p.holiday else p.secondary, 11f, s, p)
+        v.text(R.id.item_meta, meta, if (TaskFilters.isOverdue(t, today)) p.holiday else p.secondary, 12f, s, p)
         v.setViewVisibility(R.id.item_meta, if (meta.isEmpty()) View.GONE else View.VISIBLE)
         if (t.isCompletable) {
             v.setViewVisibility(R.id.item_check, View.VISIBLE)
@@ -327,7 +312,7 @@ class QuickNoteWidgetProvider : YadinoWidgetProvider() {
             v.text(R.id.w_title, NoteFilters.displayTitle(shown).ifBlank { context.getString(R.string.untitled_note) }, p.text, 15f, s, p)
             if (size != WidgetSize.SMALL) {
                 v.text(R.id.w_content, shown.content.take(600), p.secondary, 13f, s, p)
-                v.text(R.id.w_meta, fmt.relativeDay(shown.updatedAt.atZone(c.clock.zone()).toLocalDate(), c.clock.today()), p.secondary, 10f, s, p)
+                v.text(R.id.w_meta, fmt.relativeDay(shown.updatedAt.atZone(c.clock.zone()).toLocalDate(), c.clock.today()), p.secondary, 12f, s, p)
             }
             v.setOnClickPendingIntent(R.id.w_body, openApp(context, Route.NoteEditor(shown.id), widgetId * 100 + 2))
         }
@@ -417,7 +402,7 @@ class ClockWidgetProvider : YadinoWidgetProvider() {
             v.text(R.id.w_gregorian, if (config.showGregorian) fmt.gregorian(today) else "", p.secondary, 12f, s, p)
             val occ = IranianOccasions.occasionsOf(j, settings.occasionDisplay, settings.lunarAdjustment)
             v.text(R.id.w_occasion, occ.joinToString(" • ") { o -> o.title + if (o.isApproximate) " (" + context.getString(R.string.approximate) + ")" else "" },
-                if (occ.any { it.isHoliday }) p.holiday else p.secondary, 11f, s, p)
+                if (occ.any { it.isHoliday }) p.holiday else p.secondary, 12f, s, p)
         }
         v.setOnClickPendingIntent(R.id.widget_root, openApp(context, Route.Dashboard, widgetId * 100 + 1))
         return v

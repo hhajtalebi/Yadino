@@ -1,6 +1,5 @@
 package ir.yadino.app.notifications
 
-import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -155,7 +154,9 @@ class SystemEventsReceiver : BroadcastReceiver() {
         val action = intent.action ?: return
         val handled = setOf(
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED, Intent.ACTION_TIMEZONE_CHANGED,
-            Intent.ACTION_TIME_CHANGED, Intent.ACTION_LOCALE_CHANGED, AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
+            Intent.ACTION_TIME_CHANGED, Intent.ACTION_LOCALE_CHANGED,
+            // AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED (API 31; never sent on older versions)
+            "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED",
         )
         if (action !in handled) return
         runAsync(context, "system-event") { app ->

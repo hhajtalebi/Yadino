@@ -36,7 +36,7 @@ fetch kotlinc msft-mirror-aosp/platform.external.kotlinc main \
 fetch r8      msft-mirror-aosp/platform.prebuilts.r8 main '/r8.jar'
 M=/current/androidx/m2repository/androidx
 fetch sdk     msft-mirror-aosp/platform.prebuilts.sdk main \
-  '/35/public/android.jar' '/35/public/framework.aidl' \
+  '/35/public/android.jar' '/35/public/framework.aidl' '/35/public/data/api-versions.xml' '/35/public/data/annotations.zip' \
   '/tools/linux/bin/aapt2' '/tools/linux/bin/zipalign' '/tools/linux/bin/source.properties' \
   '/tools/linux/lib/' '/tools/linux/lib64/' '/tools/core-lambda-stubs.jar' \
   $M/activity/ $M/annotation/ $M/arch/ $M/autofill/ $M/collection/ $M/compose/ \
@@ -52,6 +52,9 @@ fetch m2tools msft-mirror-aosp/platform.prebuilts.tools main \
   $P/org/xerial/sqlite-jdbc/3.28.0/sqlite-jdbc-3.28.0.jar \
   $P/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.0.21/ \
   $P/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.0.21/
+
+# Android Lint (cmdline-tools 14.0-alpha01) for static analysis
+fetch cmdline-tools msft-mirror-aosp/platform.prebuilts.cmdline-tools main '/tools/' '!/tools/lib/r8.jar'
 
 # AndroidX Test (only used to compile the instrumented tests)
 AT=/common/androidx-test/androidx/test

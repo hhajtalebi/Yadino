@@ -1,5 +1,6 @@
 package ir.yadino.app
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -34,6 +35,9 @@ import java.util.Locale
 object LocaleHelper {
     val PERSIAN: Locale = Locale("fa", "IR")
 
+    // Language splits are disabled in app/build.gradle.kts (bundle.language.enableSplit = false),
+    // so the Persian resources are always installed.
+    @SuppressLint("AppBundleLocaleChanges")
     fun wrap(base: Context): Context {
         val config = Configuration(base.resources.configuration)
         config.setLocale(PERSIAN)

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
@@ -7,7 +8,8 @@
     android:minHeight="44dp"
     android:orientation="horizontal"
     android:paddingTop="2dp"
-    android:paddingBottom="2dp">
+    android:paddingBottom="2dp"
+    tools:ignore="HardcodedText">
 
     <ImageView
         android:id="@+id/item_check"
@@ -23,7 +25,8 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingStart="4dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="0dp">
         <TextView
             android:id="@+id/item_title"
             android:layout_width="match_parent"
@@ -43,7 +46,7 @@
             android:fontFamily="@font/vazirmatn"
             android:text=""
             android:textColor="@color/widget_text_secondary"
-            android:textSize="11sp"
+            android:textSize="12sp"
             android:textStyle="normal"
             android:textDirection="rtl"
             android:maxLines="1"

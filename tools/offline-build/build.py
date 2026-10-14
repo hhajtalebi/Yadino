@@ -815,6 +815,70 @@ def compile_android_tests():
     print(f"  ✅ {len(srcs)} instrumented test files compiled ({n} classes) — not executed (no device)")
 
 
+def run_lint():
+    """Runs Android Lint (cmdline-tools) on the app module using an XML project
+    description, the same mechanism AOSP's build uses. Reports: build/offline/lint/."""
+    log("Android Lint")
+    w = OUT / "app" / "debug"
+    if not (w / "app-classes.jar").exists():
+        build_apk("debug")
+    tools = TC / "cmdline-tools" / "tools"
+    lint_out = OUT / "lint"
+    shutil.rmtree(lint_out, ignore_errors=True)
+    lint_out.mkdir(parents=True)
+    # minimal SDK layout expected by lint (API database for NewApi etc.)
+    sdk = OUT / "lint-sdk"
+    plat = sdk / "platforms" / "android-35"
+    (plat / "data").mkdir(parents=True, exist_ok=True)
+    for src, dst in ((ANDROID_JAR, plat / "android.jar"),
+                     (TC / "sdk/35/public/data/api-versions.xml", plat / "data/api-versions.xml"),
+                     (TC / "sdk/35/public/data/annotations.zip", plat / "data/annotations.zip")):
+        if not dst.exists():
+            shutil.copy(src, dst)
+    (plat / "source.properties").write_text("Pkg.Desc=Android SDK Platform 35\nPkg.Revision=1\nAndroidVersion.ApiLevel=35\nPlatform.Version=15\n")
+    (plat / "build.prop").write_text("ro.build.version.sdk=35\nro.build.version.release=15\n")
+    # source manifest with placeholders resolved
+    _, scheme = drive_config()
+    manifest = lint_out / "AndroidManifest.xml"
+    text = (APP_MAIN / "AndroidManifest.xml").read_text().replace("${applicationId}", APP_ID).replace("${driveRedirectScheme}", scheme)
+    root = ET.fromstring(text)
+    root.set("package", APP_ID)
+    root.set(f"{{{ANDROID}}}versionCode", str(VERSION_CODE))
+    root.set(f"{{{ANDROID}}}versionName", VERSION_NAME)
+    uses_sdk = ET.Element("uses-sdk")
+    root.insert(0, uses_sdk)
+    uses_sdk.set(f"{{{ANDROID}}}minSdkVersion", str(MIN_SDK))
+    uses_sdk.set(f"{{{ANDROID}}}targetSdkVersion", str(TARGET_SDK))
+    ET.ElementTree(root).write(manifest, encoding="utf-8", xml_declaration=True)
+    libs = libraries()
+    lines = ['<?xml version="1.0" encoding="utf-8"?>', "<project>", f'<root dir="{ROOT}"/>',
+             '<module name="app" android="true" library="false" compile-sdk-version="35" desugar="full" test="false">',
+             f'<manifest file="{manifest}"/>', f'<resource file="{APP_MAIN / "res"}"/>',
+             f'<classes file="{w / "app-classes.jar"}"/>']
+    for src in sources(APP_MAIN / "java", ext=(".kt", ".java")):
+        lines.append(f'<src file="{src}"/>')
+    for jar_path in [w / "r.jar", CAL_JAR, DOM_JAR] + [j for l in libs if not l.is_aar for j in l.jars]:
+        lines.append(f'<classpath file="{jar_path}"/>')
+    for l in libs:
+        if l.is_aar:
+            lines.append(f'<aar file="{l.path}" extracted="{l.dir}"/>')
+    lines += ["</module>", "</project>"]
+    project = lint_out / "project.xml"
+    project.write_text("\n".join(lines))
+    cmd = [JAVA_HOME / "bin" / "java", "-Xmx3g", f"-Dcom.android.tools.lint.bindir={tools / 'bin'}",
+           "-cp", tools / "lib" / "lint-classpath.jar", "com.android.tools.lint.Main",
+           "--project", project, "--sdk-home", sdk, "--offline", "--quiet",
+           "--config", APP / "lint.xml",
+           "--text", lint_out / "lint.txt", "--xml", lint_out / "lint.xml", "--html", lint_out / "lint.html"]
+    t = time.time()
+    out = run(cmd, quiet=True, check=False)
+    (lint_out / "console.txt").write_text(out)
+    summary = (lint_out / "lint.txt").read_text() if (lint_out / "lint.txt").exists() else out
+    tail = [l for l in summary.splitlines() if l.strip()][-1:] or ["(no output)"]
+    print(f"  lint finished in {time.time() - t:.0f}s: {tail[0]}")
+    return summary
+
+
 def link_check():
     """Shrinks the debug inputs to class files with R8 and verifies every referenced
     method/field exists at runtime (catches binary incompatibilities between libraries)."""
@@ -869,7 +933,7 @@ def signing_config(debug):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("target", choices=["jvm", "test", "apk", "release", "all", "deps", "linkcheck", "androidtest"], nargs="?", default="all")
+    parser.add_argument("target", choices=["jvm", "test", "apk", "release", "all", "deps", "linkcheck", "androidtest", "lint"], nargs="?", default="all")
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     if args.target == "deps":
@@ -888,6 +952,8 @@ def main():
         link_check()
     if args.target in ("androidtest", "all"):
         compile_android_tests()
+    if args.target in ("lint",):
+        run_lint()
 
 
 if __name__ == "__main__":

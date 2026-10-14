@@ -27,7 +27,6 @@ object NotificationHelper {
     const val EXTRA_ROUTE = "ir.yadino.app.extra.ROUTE"
 
     fun createChannels(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
         val channels = listOf(
             NotificationChannel(CHANNEL_TASKS, context.getString(R.string.channel_tasks), NotificationManager.IMPORTANCE_HIGH).apply {

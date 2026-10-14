@@ -516,7 +516,7 @@ fun SettingsWidgetsScreen() {
     }
     val placed = remember(refresh) { c.widgets.placedWidgets() }
     val manager = AppWidgetManager.getInstance(context)
-    val canPin = Build.VERSION.SDK_INT >= 26 && manager.isRequestPinAppWidgetSupported
+    val canPin = manager.isRequestPinAppWidgetSupported
     SettingsPage(stringResource(R.string.settings_widgets)) {
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

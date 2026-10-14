@@ -93,7 +93,13 @@ android {
         getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
 
+    bundle {
+        // The UI language is applied at runtime; keep all language resources in every split.
+        language { enableSplit = false }
+    }
+
     lint {
+        lintConfig = file("lint.xml")
         abortOnError = true
         checkReleaseBuilds = true
         // Persian is the default (and only) language of the UI.
