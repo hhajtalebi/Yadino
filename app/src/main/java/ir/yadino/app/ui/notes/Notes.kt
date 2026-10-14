@@ -320,6 +320,11 @@ class NoteEditorViewModel(c: AppContainer, private val route: Route.NoteEditor) 
         viewModelScope.launch {
             val settings = c.settings.awaitLoaded()
             val existing = route.noteId?.let { c.notes.get(it) }
+            if (route.noteId != null && existing == null && c.notes.getDraft(route.noteId) == null) {
+                message(UiMessage.Text(R.string.item_not_found))
+                closed.tryEmit(Unit)
+                return@launch
+            }
             val now = c.clock.now()
             val note = existing ?: Note(Ids.newId(), "", "", settings.defaultNoteColor, goalId = route.goalId, createdAt = now, updatedAt = now)
             val draft = c.notes.getDraft(existing?.id ?: "new")

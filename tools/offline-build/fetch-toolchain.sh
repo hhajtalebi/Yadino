@@ -53,6 +53,12 @@ fetch m2tools msft-mirror-aosp/platform.prebuilts.tools main \
   $P/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.0.21/ \
   $P/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.0.21/
 
+# AndroidX Test (only used to compile the instrumented tests)
+AT=/common/androidx-test/androidx/test
+fetch m2misc msft-mirror-aosp/platform.prebuilts.misc main \
+  $AT/runner/1.6.0/ $AT/core/1.6.0/ $AT/monitor/1.7.0/ $AT/ext/junit/1.2.0/ \
+  '!*-sources.jar' '!*.md5' '!*.sha1'
+
 # ---- Upstream sources (pinned tags) ----------------------------------------
 fetch src-coroutines Kotlin/kotlinx.coroutines 1.9.0 \
   '/kotlinx-coroutines-core/common/src/' '/kotlinx-coroutines-core/concurrent/src/' \

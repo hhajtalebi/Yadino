@@ -25,12 +25,18 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+/** Storage for OAuth tokens (abstracted so the Drive logic can be unit tested). */
+interface TokenStore {
+    fun put(name: String, value: String?)
+    fun get(name: String): String?
+}
+
 /**
  * Small encrypted key/value store for OAuth tokens. Values are encrypted with an AES-GCM
  * key kept in the Android Keystore (never leaves secure hardware where available). The
  * file is excluded from Android Auto Backup (see res/xml/backup_rules.xml).
  */
-class SecureTokenStore(context: Context) {
+class SecureTokenStore(context: Context) : TokenStore {
     private val prefs: SharedPreferences = context.applicationContext.getSharedPreferences("secure_tokens", Context.MODE_PRIVATE)
     private val alias = "yadino_tokens_v1"
 
@@ -48,7 +54,7 @@ class SecureTokenStore(context: Context) {
         return gen.generateKey()
     }
 
-    fun put(name: String, value: String?) {
+    override fun put(name: String, value: String?) {
         if (value == null) {
             prefs.edit().remove(name).apply()
             return
@@ -60,7 +66,7 @@ class SecureTokenStore(context: Context) {
         prefs.edit().putString(name, blob).apply()
     }
 
-    fun get(name: String): String? {
+    override fun get(name: String): String? {
         val blob = prefs.getString(name, null) ?: return null
         return try {
             val (iv, data) = blob.split(':', limit = 2).let { Base64.decode(it[0], Base64.NO_WRAP) to Base64.decode(it[1], Base64.NO_WRAP) }
@@ -143,7 +149,7 @@ interface DriveBackupProvider {
 }
 
 class GoogleDriveClient(
-    private val tokens: SecureTokenStore,
+    private val tokens: TokenStore,
     private val transport: HttpTransport = UrlConnectionTransport(),
     private val clientId: String = BuildConfig.DRIVE_CLIENT_ID,
     private val redirectScheme: String = BuildConfig.DRIVE_REDIRECT_SCHEME,
@@ -166,6 +172,11 @@ class GoogleDriveClient(
 
     val redirectUri: String get() = "$redirectScheme:/oauth2redirect"
 
+    /** RFC 7636 S256 code challenge. */
+    internal fun pkceChallenge(verifier: String): String =
+        java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII)))
+
     override fun isConfigured(): Boolean = clientId.isNotBlank() && clientId.endsWith(".apps.googleusercontent.com")
 
     override fun isConnected(): Boolean = tokens.get(K_REFRESH) != null
@@ -177,19 +188,21 @@ class GoogleDriveClient(
     private fun randomToken(bytes: Int): String {
         val b = ByteArray(bytes)
         SecureRandom().nextBytes(b)
-        return Base64.encodeToString(b, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(b)
     }
 
-    /** Builds the consent URL and stores the PKCE verifier/state for the redirect. */
-    fun authorizationUrl(): Uri {
+    /** Creates and stores a PKCE verifier and an anti-CSRF state. Returns (state, S256 challenge). */
+    internal fun beginAuthorization(): Pair<String, String> {
         val verifier = randomToken(48)
         val state = randomToken(16)
         tokens.put(K_VERIFIER, verifier)
         tokens.put(K_STATE, state)
-        val challenge = Base64.encodeToString(
-            MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII)),
-            Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP,
-        )
+        return state to pkceChallenge(verifier)
+    }
+
+    /** Builds the consent URL and stores the PKCE verifier/state for the redirect. */
+    fun authorizationUrl(): Uri {
+        val (state, challenge) = beginAuthorization()
         return Uri.parse(AUTH_URL).buildUpon()
             .appendQueryParameter("client_id", clientId)
             .appendQueryParameter("redirect_uri", redirectUri)
@@ -203,14 +216,15 @@ class GoogleDriveClient(
     }
 
     /** Handles the OAuth redirect, exchanging the authorization code for tokens. */
-    suspend fun completeAuthorization(redirect: Uri): DriveResult = withContext(Dispatchers.IO) {
+    suspend fun completeAuthorization(redirect: Uri): DriveResult =
+        completeAuthorization(redirect.getQueryParameter("code"), redirect.getQueryParameter("state"), redirect.getQueryParameter("error"))
+
+    suspend fun completeAuthorization(code: String?, state: String?, error: String?): DriveResult = withContext(Dispatchers.IO) {
         val expectedState = tokens.get(K_STATE)
         val verifier = tokens.get(K_VERIFIER)
         tokens.put(K_STATE, null)
         tokens.put(K_VERIFIER, null)
-        if (redirect.getQueryParameter("error") != null) return@withContext DriveResult.Error(DriveResult.Kind.AUTH_FAILED)
-        val state = redirect.getQueryParameter("state")
-        val code = redirect.getQueryParameter("code")
+        if (error != null) return@withContext DriveResult.Error(DriveResult.Kind.AUTH_FAILED)
         if (expectedState == null || state != expectedState || verifier == null || code == null) {
             return@withContext DriveResult.Error(DriveResult.Kind.STATE_MISMATCH)
         }

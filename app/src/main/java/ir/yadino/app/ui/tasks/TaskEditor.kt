@@ -137,6 +137,11 @@ class TaskEditorViewModel(c: AppContainer, private val route: Route.TaskEditor) 
         viewModelScope.launch {
             val settings = c.settings.awaitLoaded()
             val existing = route.taskId?.let { c.tasks.get(it) }
+            if (route.taskId != null && existing == null) {
+                message(UiMessage.Text(R.string.item_not_found))
+                closed.tryEmit(Unit)
+                return@launch
+            }
             if (existing != null) {
                 val subs = c.tasks.getSubtasks(existing.id)
                 val noteTitle = existing.sourceNoteId?.let { c.notes.get(it) }?.let { NoteFilters.displayTitle(it) }

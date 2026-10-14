@@ -162,9 +162,14 @@ fun CalendarScreen(route: Route.Calendar) {
             if (sel.monthIndex != month.monthIndex) vm.select(month.withDayClamped(sel.day).toLocalDate())
         }
     }
+    fun pageOf(d: LocalDate) = 600 + (JalaliDate.from(d).monthIndex - baseMonth)
     fun goTo(d: LocalDate) {
         vm.select(d)
-        scope.launch { pager.animateScrollToPage(600 + (JalaliDate.from(d).monthIndex - baseMonth)) }
+        if (vm.view.value == CalendarView.MONTH) scope.launch { pager.animateScrollToPage(pageOf(d)) }
+        else pager.requestScrollToPage(pageOf(d))
+    }
+    LaunchedEffect(view) {
+        if (view == CalendarView.MONTH && pager.currentPage != pageOf(vm.selected.value)) pager.scrollToPage(pageOf(vm.selected.value))
     }
 
     val selJ = JalaliDate.from(selected)

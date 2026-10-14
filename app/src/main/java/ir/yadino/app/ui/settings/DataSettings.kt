@@ -165,6 +165,8 @@ class DataViewModel(c: AppContainer) : SettingsViewModel(c) {
 
     fun closeDriveList() { driveFiles.value = null }
 
+    fun noBrowser() = message(UiMessage.Text(R.string.err_no_browser))
+
     private fun driveMessage(r: DriveResult, ok: Int): UiMessage = UiMessage.Text(
         when (r) {
             is DriveResult.Success -> ok
@@ -264,7 +266,11 @@ fun SettingsDataScreen() {
             when {
                 !vm.driveConfigured -> SettingRow(stringResource(R.string.drive_status), stringResource(R.string.drive_not_configured_desc), Icons.Default.CloudOff)
                 !connected -> SettingRow(stringResource(R.string.drive_connect), stringResource(R.string.drive_connect_desc), Icons.Default.Cloud, enabled = !busy, onClick = {
-                    CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(context, vm.driveAuthUrl())
+                    try {
+                        CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(context, vm.driveAuthUrl())
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        vm.noBrowser()
+                    }
                 })
                 else -> {
                     SettingRow(stringResource(R.string.drive_connected), vm.driveAccount() ?: stringResource(R.string.drive_connected_desc), Icons.Default.Cloud)

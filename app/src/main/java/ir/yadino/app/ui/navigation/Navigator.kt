@@ -2,7 +2,7 @@ package ir.yadino.app.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.saveable.Saver
@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import ir.yadino.domain.model.StartScreen
+import kotlinx.coroutines.delay
 
 /** Back stack of typed routes. */
 @Stable
@@ -103,10 +104,11 @@ fun DestinationScope(stores: DestinationStores, key: String, content: @Composabl
     CompositionLocalProvider(LocalViewModelStoreOwner provides owner) { content() }
 }
 
+/** Clears ViewModels of popped destinations once the exit transition has finished. */
 @Composable
 fun PruneStores(stores: DestinationStores, keys: List<String>) {
-    DisposableEffect(keys) {
+    LaunchedEffect(keys) {
+        delay(600)
         stores.retainOnly(keys)
-        onDispose { }
     }
 }

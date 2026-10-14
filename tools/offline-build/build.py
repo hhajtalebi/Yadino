@@ -248,16 +248,21 @@ def build_tests():
     log("JVM unit tests")
     junit = [DEPS / "junit.jar", DEPS / "hamcrest-core.jar"]
     results = {}
+    sqlite_jdbc = M2_TOOLS / "org/xerial/sqlite-jdbc/3.28.0/sqlite-jdbc-3.28.0.jar"
     modules = [
-        ("calendar", ROOT / "core/calendar/src/test", [CAL_JAR]),
-        ("domain", ROOT / "core/domain/src/test", [CAL_JAR, DOM_JAR, DEPS / "kotlinx-coroutines-core.jar"]),
+        ("calendar", ROOT / "core/calendar/src/test", [CAL_JAR], ROOT),
+        ("domain", ROOT / "core/domain/src/test", [CAL_JAR, DOM_JAR, DEPS / "kotlinx-coroutines-core.jar"], ROOT),
+        # JVM tests of the app module (no Android framework needed); run from app/ like Gradle does
+        ("app", APP / "src/test", [CAL_JAR, DOM_JAR, sqlite_jdbc, DEPS / "kotlinx-coroutines-core.jar",
+                                    OUT / "app" / "debug" / "app-classes.jar", OUT / "app" / "debug" / "r.jar", ANDROID_JAR], APP),
     ]
-    for name, test_root, cp in modules:
+    for name, test_root, cp, workdir in modules:
         srcs = sources(test_root / "kotlin")
         if not srcs:
             continue
         classes = OUT / "test-classes" / name
-        cached(f"{name}-tests", srcs + cp, "v1", lambda: kotlinc(f"{name}-test", srcs, cp + junit, classes))
+        friends = ",".join(str(p) for p in cp if p.suffix == ".jar" and "out/deps" not in str(p) and p != ANDROID_JAR)
+        cached(f"{name}-tests", srcs + cp, "v2", lambda: kotlinc(f"{name}-test", srcs, cp + junit, classes, [f"-Xfriend-paths={friends}"]))
         res_dir = test_root / "resources"
         test_classes = sorted(
             p.relative_to(classes).with_suffix("").as_posix().replace("/", ".")
@@ -265,7 +270,7 @@ def build_tests():
         cp_all = [classes] + ([res_dir] if res_dir.exists() else []) + cp + junit + [STDLIB]
         t = time.time()
         out = run([JAVA_HOME / "bin" / "java", "-cp", os.pathsep.join(map(str, cp_all)),
-                   "org.junit.runner.JUnitCore"] + test_classes, quiet=True, check=False)
+                   "org.junit.runner.JUnitCore"] + test_classes, quiet=True, check=False, cwd=workdir)
         ok = re.search(r"OK \((\d+) tests?\)", out)
         fail = re.search(r"Tests run: (\d+),\s+Failures: (\d+)", out)
         (OUT / "logs").mkdir(parents=True, exist_ok=True)
@@ -300,7 +305,7 @@ def _find_artifact(group, artifact):
     return None, None, None
 
 
-def resolve_dependencies(roots):
+def resolve_dependencies(roots, allow_missing=False):
     seen, order, missing = {}, [], set()
     queue = list(roots)
     while queue:
@@ -331,7 +336,7 @@ def resolve_dependencies(roots):
         seen[coord] = ("maven", art)
         order.append(coord)
         queue += deps
-    if missing:
+    if missing and not allow_missing:
         raise SystemExit("unresolved dependencies: " + ", ".join(sorted(missing)))
     return order, seen
 
@@ -658,12 +663,12 @@ def build_apk(variant="debug"):
         out = run([KOTLIN_HOME / "bin" / "kapt", f"@{argfile}"], quiet=True, check=False)
         (OUT / "logs").mkdir(parents=True, exist_ok=True)
         (OUT / "logs" / "kapt.log").write_text(out)
-        if "error:" in out or not any((kapt_dir / "sources").rglob("*.java")):
+        if "error:" in out or "Exception" in out or not any((kapt_dir / "sources").rglob("*.java")):
             print(out[-20000:])
             raise SystemExit("kapt failed")
         print(f"  kapt: {len(list((kapt_dir / 'sources').rglob('*.java')))} generated files, {time.time() - t:.0f}s")
 
-    cached("kapt", room_inputs + [CAL_JAR, DOM_JAR], "v2", run_kapt)
+    cached("kapt", room_inputs + [CAL_JAR, DOM_JAR], "v3", run_kapt)
     kapt_java = sources(kapt_gen, ext=(".java",))
 
     # 4. kotlinc (with Compose compiler) -----------------------------------------------
@@ -776,6 +781,40 @@ def build_apk(variant="debug"):
     return final
 
 
+def compile_android_tests():
+    """Compiles the instrumented tests (app/src/androidTest) against the app and AndroidX
+    Test. They need a device or emulator to run, which this environment does not have."""
+    log("Instrumented tests (compile only)")
+    w = OUT / "app" / "debug"
+    if not (w / "app-classes.jar").exists():
+        build_apk("debug")
+    misc = TC / "m2misc" / "common" / "androidx-test" / "androidx" / "test"
+    test_aars = [misc / "runner/1.6.0/runner-1.6.0.aar", misc / "core/1.6.0/core-1.6.0.aar",
+                 misc / "monitor/1.7.0/monitor-1.7.0.aar", misc / "ext/junit/1.2.0/junit-1.2.0.aar"]
+    # test-only transitive deps (espresso, …) are provided by the test APK at runtime
+    order, seen = resolve_dependencies(APP_DEPENDENCIES + ["androidx.room:room-testing", "androidx.compose.ui:ui-test-junit4"], allow_missing=True)
+    jars = []
+    for coord in order:
+        kind, val = seen[coord]
+        for p in (val if kind == "external" else [val]):
+            if p is None:
+                continue
+            lib = Library(coord, p)
+            lib.extract()
+            jars += lib.jars
+    for a in test_aars:
+        lib = Library(a.stem, a)
+        lib.extract()
+        jars += lib.jars
+    cp = [ANDROID_JAR, w / "app-classes.jar", w / "r.jar", CAL_JAR, DOM_JAR, DEPS / "junit.jar", DEPS / "hamcrest-core.jar",
+          DEPS / "kotlinx-coroutines-test.jar"] + list(dict.fromkeys(jars)) + COMPILE_ONLY
+    srcs = sources(APP / "src" / "androidTest", ext=(".kt",))
+    kotlinc("app-android-test", srcs, cp, OUT / "android-test-classes",
+            [f"-Xplugin={KOTLIN_HOME / 'lib' / 'compose-compiler.jar'}", f"-Xfriend-paths={w / 'app-classes.jar'}"], embeddable=True)
+    n = len(list((OUT / "android-test-classes").rglob("*.class")))
+    print(f"  ✅ {len(srcs)} instrumented test files compiled ({n} classes) — not executed (no device)")
+
+
 def link_check():
     """Shrinks the debug inputs to class files with R8 and verifies every referenced
     method/field exists at runtime (catches binary incompatibilities between libraries)."""
@@ -830,7 +869,7 @@ def signing_config(debug):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("target", choices=["jvm", "test", "apk", "release", "all", "deps", "linkcheck"], nargs="?", default="all")
+    parser.add_argument("target", choices=["jvm", "test", "apk", "release", "all", "deps", "linkcheck", "androidtest"], nargs="?", default="all")
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     if args.target == "deps":
@@ -847,6 +886,8 @@ def main():
         build_apk("release")
     if args.target in ("linkcheck",):
         link_check()
+    if args.target in ("androidtest", "all"):
+        compile_android_tests()
 
 
 if __name__ == "__main__":

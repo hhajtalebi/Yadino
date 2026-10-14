@@ -14,6 +14,7 @@ work = "2.10.1"
 datastore = "1.1.7"
 browser = "1.8.0"
 junit = "4.13.2"
+sqliteJdbc = "3.46.1.0"
 androidxTestExt = "1.2.1"
 androidxTestRunner = "1.6.2"
 
@@ -41,6 +42,7 @@ androidx-browser = { group = "androidx.browser", name = "browser", version.ref =
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqliteJdbc" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 

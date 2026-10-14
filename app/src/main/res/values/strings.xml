@@ -211,6 +211,7 @@
     <string name="err_backup_verify">فایل ذخیره شد اما بررسی آن ناموفق بود. دوباره تلاش کنید.</string>
     <string name="err_file_write">نوشتن فایل ممکن نشد</string>
     <string name="err_generic">خطایی رخ داد. اطلاعات شما حفظ شده است؛ دوباره تلاش کنید.</string>
+    <string name="err_no_browser">مرورگری برای باز کردن صفحه ورود گوگل پیدا نشد</string>
     <string name="err_settings_file">فایل تنظیمات معتبر نیست</string>
     <string name="error_log">ثبت گزارش خطا</string>
     <string name="error_log_clear">پاک کردن گزارش خطاها</string>
@@ -304,6 +305,7 @@
     <string name="import_settings_confirm">تنظیمات فعلی با تنظیمات فایل جایگزین می‌شود. اطلاعات شما تغییری نمی‌کند.</string>
     <string name="import_settings_desc">بارگذاری تنظیمات از فایل خروجی یادینو</string>
     <string name="increase">افزایش</string>
+    <string name="item_not_found">این مورد پیدا نشد؛ ممکن است حذف شده باشد</string>
     <string name="items_count">تعداد موارد: %1$s</string>
     <string name="kind_event">رویداد</string>
     <string name="kind_general">عمومی</string>
