@@ -118,19 +118,22 @@ python3 tools/download-page/build_page.py --standalone   # release/yadino-<نس�
 
 ## انتشار در گیت‌هاب (Releases)
 
-هر نسخه با یک برچسب `v<نسخه>` (مثلاً `v1.4.0`) در بخش Releases مخزن منتشر می‌شود و این فایل‌ها به آن پیوست می‌شوند: APK اصلی، APK اشکال‌زدایی، صفحه دریافت تک‌فایلی و `SHA256SUMS.txt`. نشانی دانلود هر فایل دائمی است، مثلاً:
+هر نسخه پس از ادغام در شاخه `main` با یک برچسب `v<نسخه>` (مثلاً `v1.4.0`) در بخش Releases مخزن منتشر می‌شود. فایل‌های همان نسخه در پوشه `release/` همان برچسب هستند. یادداشت انتشار، پیوند دانلود مستقیم آن‌ها را دارد. این پیوندها به برچسب بسته‌اند و با نسخه‌های بعدی تغییر نمی‌کنند، مثلاً:
 
 ```
-https://github.com/hhajtalebi/Yadino/releases/download/v1.4.0/yadino-1.4.0-release.apk
+https://github.com/hhajtalebi/Yadino/raw/v1.4.0/release/yadino-1.4.0-release.apk
 ```
 
 با GitHub CLI:
 
 ```bash
-gh release create v1.4.0 --target main --title "یادینو ۱٫۴٫۰" --notes-file یادداشت-انتشار.md \
-  release/yadino-1.4.0-release.apk release/yadino-1.4.0-debug.apk \
+gh release create v1.4.0 --target main --title "یادینو ۱٫۴٫۰" --notes-file یادداشت-انتشار.md
+# اختیاری: پیوست فایل‌ها به خود انتشار، اگر اتصال به uploads.github.com در دسترس باشد
+gh release upload v1.4.0 release/yadino-1.4.0-release.apk release/yadino-1.4.0-debug.apk \
   release/yadino-1.4.0-download.html release/SHA256SUMS.txt
 ```
+
+> در محیطی که نسخه ۱٫۴٫۰ در آن ساخته شد، نشانی `uploads.github.com` در دسترس نبود. برای همین فایل‌ها به خود انتشار پیوست نشده‌اند و یادداشت انتشار به فایل‌های برچسب `v1.4.0` پیوند می‌دهد. مالک مخزن می‌تواند در صفحه ویرایش انتشار، فایل‌های پوشه `release/` را با کشیدن و رها کردن پیوست کند.
 
 ## پایگاه داده و مهاجرت‌ها
 

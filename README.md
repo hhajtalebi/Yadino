@@ -6,7 +6,7 @@
 
 یادینو برای مدیریت برنامه روزانه، کارها، یادداشت‌ها، اهداف و عادت‌ها ساخته شده است. همه اطلاعات روی خود دستگاه ذخیره می‌شود، بدون اینترنت و بدون ثبت‌نام کار می‌کند و رابط کاربری آن کاملاً فارسی و راست‌به‌چپ است.
 
-> 📲 **دریافت آخرین نسخه (اندروید ۸ و بالاتر):** [بخش انتشارها (Releases) در گیت‌هاب](https://github.com/hhajtalebi/Yadino/releases/latest) · [دانلود مستقیم APK](https://github.com/hhajtalebi/Yadino/releases/download/v1.4.0/yadino-1.4.0-release.apk) · [صفحه دریافت و راهنمای نصب](https://hhajtalebi.github.io/Yadino/)
+> 📲 **دریافت آخرین نسخه (اندروید ۸ و بالاتر):** [بخش انتشارها (Releases) در گیت‌هاب](https://github.com/hhajtalebi/Yadino/releases/latest) · [دانلود مستقیم APK](https://github.com/hhajtalebi/Yadino/raw/v1.4.0/release/yadino-1.4.0-release.apk) · [صفحه دریافت و راهنمای نصب](https://hhajtalebi.github.io/Yadino/)
 
 ---
 
@@ -97,7 +97,7 @@
 
 ## دریافت و نصب
 
-آخرین نسخه همیشه در [بخش انتشارها (Releases) گیت‌هاب](https://github.com/hhajtalebi/Yadino/releases/latest) است؛ فایل‌های APK، صفحه دریافت تک‌فایلی و `SHA256SUMS.txt` آنجا پیوست شده‌اند و روی هر گوشی با مرورگر دانلود می‌شوند.
+آخرین نسخه همیشه در [بخش انتشارها (Releases) گیت‌هاب](https://github.com/hhajtalebi/Yadino/releases/latest) است. یادداشت هر انتشار، پیوند دانلود مستقیم فایل‌های همان نسخه (APK اصلی، APK اشکال‌زدایی، صفحه دریافت تک‌فایلی و `SHA256SUMS.txt`) را دارد؛ این پیوندها به برچسب همان نسخه بسته‌اند و دائمی‌اند.
 
 راه دیگر، [صفحه دریافت](https://hhajtalebi.github.io/Yadino/) است: دکمه دانلود، راهنمای نصب قدم‌به‌قدم، کد QR برای باز کردن صفحه روی گوشی، فهرست موارد قابل آزمون و راهنمای گزارش خطا. این صفحه (`index.html`) با GitHub Pages منتشر می‌شود؛ فعال‌سازی آن یک بار از تنظیمات مخزن انجام می‌شود ([راهنما](docs/BUILD.md)). فایل‌های APK در پوشه [`release/`](release/) هم هستند:
 
