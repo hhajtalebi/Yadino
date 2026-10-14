@@ -28,6 +28,7 @@ import ir.yadino.domain.goals.GoalProgressCalculator
 import ir.yadino.domain.model.AppSettings
 import ir.yadino.domain.model.GoalStatus
 import ir.yadino.domain.model.NoteFilters
+import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.model.OverdueBehavior
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.model.TaskKind
@@ -309,10 +310,15 @@ class QuickNoteWidgetProvider : YadinoWidgetProvider() {
             if (size != WidgetSize.SMALL) v.text(R.id.w_content, context.getString(R.string.widget_note_empty_body), p.secondary, 13f, s, p)
             v.setOnClickPendingIntent(R.id.w_body, newNote)
         } else {
-            v.text(R.id.w_title, NoteFilters.displayTitle(shown).ifBlank { context.getString(R.string.untitled_note) }, p.text, 15f, s, p)
+            val card = NoteFilters.card(shown)
+            v.text(R.id.w_title, card.title?.ifBlank { null } ?: context.getString(R.string.untitled_note), p.text, 15f, s, p)
             if (size != WidgetSize.SMALL) {
-                v.text(R.id.w_content, shown.content.take(600), p.secondary, 13f, s, p)
-                v.text(R.id.w_meta, fmt.relativeDay(shown.updatedAt.atZone(c.clock.zone()).toLocalDate(), c.clock.today()), p.secondary, 12f, s, p)
+                v.text(R.id.w_content, Checklist.displayText(card.body).take(600), p.secondary, 13f, s, p)
+                val updated = fmt.relativeDay(shown.updatedAt.atZone(c.clock.zone()).toLocalDate(), c.clock.today())
+                val meta = Checklist.progress(shown.content)?.let { (done, total) ->
+                    context.getString(R.string.checklist_progress, fmt.number(done), fmt.number(total)) + " · " + updated
+                } ?: updated
+                v.text(R.id.w_meta, meta, p.secondary, 12f, s, p)
             }
             v.setOnClickPendingIntent(R.id.w_body, openApp(context, Route.NoteEditor(shown.id), widgetId * 100 + 2))
         }

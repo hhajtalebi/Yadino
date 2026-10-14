@@ -70,6 +70,7 @@ import ir.yadino.domain.model.Goal
 import ir.yadino.domain.model.Habit
 import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteFilters
+import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.model.Priority
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.planning.TaskFilters
@@ -274,7 +275,7 @@ fun SearchScreen() {
                 if (state.tasks.isNotEmpty()) item { Header(stringResource(R.string.tab_tasks)) }
                 items(state.tasks, key = { "t" + it.id }) { t -> TaskRow(t, state.today, null, { nav.navigate(Route.TaskEditor(taskId = t.id)) }) }
                 if (state.notes.isNotEmpty()) item { Header(stringResource(R.string.tab_notes)) }
-                items(state.notes, key = { "n" + it.id }) { n -> ResultRow(Icons.AutoMirrored.Filled.StickyNote2, NoteFilters.displayTitle(n).ifBlank { stringResource(R.string.untitled_note) }, n.content) { nav.navigate(Route.NoteEditor(n.id)) } }
+                items(state.notes, key = { "n" + it.id }) { n -> ResultRow(Icons.AutoMirrored.Filled.StickyNote2, NoteFilters.displayTitle(n).ifBlank { stringResource(R.string.untitled_note) }, Checklist.displayText(n.content)) { nav.navigate(Route.NoteEditor(n.id)) } }
                 if (state.goals.isNotEmpty()) item { Header(stringResource(R.string.goals)) }
                 items(state.goals, key = { "g" + it.id }) { g -> ResultRow(Icons.Default.Flag, g.title, g.description) { nav.navigate(Route.GoalDetail(g.id)) } }
                 if (state.habits.isNotEmpty()) item { Header(stringResource(R.string.habits)) }

@@ -99,6 +99,7 @@ import ir.yadino.app.ui.components.YadinoScaffold
 import ir.yadino.app.ui.components.YadinoTopBar
 import ir.yadino.app.ui.navigation.LocalNavigator
 import ir.yadino.app.ui.navigation.Route
+import ir.yadino.app.ui.notes.NoteBodyPreview
 import ir.yadino.app.ui.theme.HolidayRed
 import ir.yadino.app.ui.theme.HolidayRedDark
 import ir.yadino.app.ui.theme.LocalAppSettings
@@ -576,9 +577,11 @@ private fun NotesRow(title: String, icon: ImageVector, notes: List<Note>, showEm
                     colors = CardDefaults.cardColors(containerColor = n.color.container(dark)),
                 ) {
                     Column(Modifier.padding(10.dp)) {
-                        Text(NoteFilters.displayTitle(n).ifBlank { stringResource(R.string.untitled_note) }, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(n.content, style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val card = remember(n.title, n.content) { NoteFilters.card(n) }
+                        card.title?.let { t ->
+                            Text(t.ifBlank { stringResource(R.string.untitled_note) }, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        NoteBodyPreview(card.body, maxLines = if (card.title == null) 4 else 3)
                     }
                 }
             }

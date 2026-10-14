@@ -107,6 +107,13 @@
     <string name="channel_tasks_desc">یادآوری کارها، رویدادها و مهلت‌ها</string>
     <string name="check_in_for">ثبت انجام «%1$s»</string>
     <string name="check_in_today">ثبت انجام امروز</string>
+    <string name="checklist_add_item">افزودن مورد</string>
+    <string name="checklist_clear_checked">حذف موارد انجام‌شده</string>
+    <string name="checklist_item_hint">مورد فهرست</string>
+    <string name="checklist_progress">%1$s از %2$s انجام شده</string>
+    <string name="checklist_remove_item">حذف مورد</string>
+    <string name="checklist_toggle">فهرست تیک‌دار</string>
+    <string name="checklist_uncheck_all">برداشتن همه تیک‌ها</string>
     <string name="choose_file">انتخاب فایل</string>
     <string name="clear">پاک کردن</string>
     <string name="clear_cache">پاک کردن حافظه موقت</string>
@@ -418,6 +425,8 @@
     <string name="msg_backup_saved">پشتیبان با %1$s رکورد ذخیره و بررسی شد</string>
     <string name="msg_backup_saved_encrypted">پشتیبان رمزگذاری‌شده با %1$s رکورد ذخیره و بررسی شد</string>
     <string name="msg_cache_cleared">حافظه موقت پاک شد</string>
+    <string name="msg_checked_items_removed">%1$s مورد انجام‌شده حذف شد</string>
+    <string name="msg_checklist_to_text">فهرست به متن تبدیل شد و تیک‌ها برداشته شد</string>
     <string name="msg_copied_count">%1$s مورد کپی شد</string>
     <string name="msg_deleted">حذف شد</string>
     <string name="msg_deleted_count">%1$s مورد حذف شد</string>

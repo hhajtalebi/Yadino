@@ -1,5 +1,6 @@
 package ir.yadino.domain.model
 
+import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.recurrence.RecurrenceRule
 import java.time.DayOfWeek
 import java.time.Instant
@@ -102,7 +103,8 @@ data class Note(
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
-    val isBlank: Boolean get() = title.isBlank() && content.isBlank()
+    /** Nothing typed yet; a lone empty checklist item counts as blank too. */
+    val isBlank: Boolean get() = title.isBlank() && Checklist.plainText(content).isBlank()
 }
 
 enum class GoalTerm { SHORT, LONG }

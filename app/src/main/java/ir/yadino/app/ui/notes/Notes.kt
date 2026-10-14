@@ -3,7 +3,6 @@ package ir.yadino.app.ui.notes
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +30,8 @@ import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Delete
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.RemoveDone
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -84,6 +86,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ir.yadino.app.R
+import ir.yadino.app.core.Formatter
 import ir.yadino.app.data.local.entity.NoteDraftEntity
 import ir.yadino.app.di.AppContainer
 import ir.yadino.app.ui.LocalContainer
@@ -111,6 +114,9 @@ import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteColor
 import ir.yadino.domain.model.NoteFilters
 import ir.yadino.domain.model.NoteSort
+import ir.yadino.domain.notes.Checklist
+import ir.yadino.domain.notes.ChecklistEditor
+import ir.yadino.domain.notes.NoteBlock
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -273,16 +279,20 @@ fun NotesScreen() {
                         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { nav.navigate(Route.NoteEditor(n.id)) }, onLongClick = { vm.togglePin(n) }),
                         colors = CardDefaults.cardColors(containerColor = n.color.container(dark)),
                     ) {
+                        val card = remember(n.title, n.content) { NoteFilters.card(n) }
                         Column(Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.Top) {
-                                Text(NoteFilters.displayTitle(n).ifBlank { stringResource(R.string.untitled_note) }, style = MaterialTheme.typography.titleSmall,
-                                    modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                val title = card.title
+                                if (title != null) {
+                                    Text(title.ifBlank { stringResource(R.string.untitled_note) }, style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                } else {
+                                    Spacer(Modifier.weight(1f))
+                                }
                                 if (n.isPinned) Icon(Icons.Default.PushPin, stringResource(R.string.pinned), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
                             }
-                            if (n.title.isNotBlank() && n.content.isNotBlank()) {
-                                Text(n.content, style = MaterialTheme.typography.bodySmall, maxLines = 8, overflow = TextOverflow.Ellipsis,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            if (card.body.isNotBlank()) NoteBodyPreview(card.body, maxLines = 8)
+                            ChecklistProgressLabel(n.content, Modifier.padding(top = 2.dp))
                             if (n.tags.isNotEmpty()) Text(n.tags.joinToString(" ") { "#$it" }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             Text(fmt.relativeDay(n.updatedAt.atZone(ZoneId.systemDefault()).toLocalDate(), c.clock.today()), style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline)
@@ -306,9 +316,16 @@ data class NoteEditorState(
     val draftAvailable: NoteDraftEntity? = null,
 )
 
-class NoteEditorViewModel(c: AppContainer, private val route: Route.NoteEditor) : YadinoViewModel(c) {
+class NoteEditorViewModel(c: AppContainer, private val route: Route.NoteEditor) : YadinoViewModel(c), NoteBodyActions {
     private val _state = MutableStateFlow(NoteEditorState())
     val state: StateFlow<NoteEditorState> = _state.asStateFlow()
+
+    /** The body as editable blocks; note.content is always its serialization. */
+    private val body = ChecklistEditor()
+    private val _blocks = MutableStateFlow(body.entries)
+    val blocks: StateFlow<List<ChecklistEditor.Entry>> = _blocks.asStateFlow()
+    private val _focus = MutableStateFlow<ChecklistEditor.Focus?>(null)
+    val focusRequest: StateFlow<ChecklistEditor.Focus?> = _focus.asStateFlow()
     val categories: StateFlow<List<Category>> = c.categories.categories.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val goals: StateFlow<List<Goal>> = c.goals.goals.map { l -> l.filter { !it.isArchived } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val closed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -330,6 +347,7 @@ class NoteEditorViewModel(c: AppContainer, private val route: Route.NoteEditor) 
             val note = existing ?: Note(Ids.newId(), "", "", settings.defaultNoteColor, goalId = route.goalId, createdAt = now, updatedAt = now)
             val draft = c.notes.getDraft(existing?.id ?: "new")
             val usable = draft?.takeIf { existing == null || it.savedAt > existing.updatedAt.toEpochMilli() }
+            loadBody(note.content)
             _state.value = NoteEditorState(loaded = true, note = note, persisted = existing != null, savedAt = existing?.updatedAt)
             if (usable != null) {
                 if (route.restoreDraft) applyDraft(usable) else _state.value = _state.value.copy(draftAvailable = usable)
@@ -343,7 +361,65 @@ class NoteEditorViewModel(c: AppContainer, private val route: Route.NoteEditor) 
             n.copy(title = d.title, content = d.content, color = NoteColor.entries.firstOrNull { it.name == d.color } ?: n.color,
                 categoryId = d.categoryId, tags = d.tags.split("\n").filter { it.isNotBlank() })
         }
+        loadBody(d.content)
         _state.value = _state.value.copy(draftAvailable = null)
+    }
+
+    // ---- Body and checklist -------------------------------------------------------------------
+    private fun loadBody(content: String) {
+        body.reset(content)
+        _blocks.value = body.entries
+    }
+
+    private fun bodyChanged(focus: ChecklistEditor.Focus? = null) {
+        _blocks.value = body.entries
+        if (focus != null) _focus.value = focus
+        val content = body.content()
+        if (content != _state.value.note?.content) update { it.copy(content = content) }
+    }
+
+    private fun restoreBody(content: String) {
+        loadBody(content)
+        update { it.copy(content = content) }
+    }
+
+    override fun editBlock(key: Long, text: String) = bodyChanged(body.editText(key, text))
+
+    override fun toggleItem(key: Long) {
+        body.toggle(key)
+        bodyChanged()
+    }
+
+    override fun removeBlock(key: Long, moveFocus: Boolean) {
+        val next = body.remove(key)
+        bodyChanged(if (moveFocus) next else null)
+    }
+
+    override fun addItem() = bodyChanged(body.appendItem())
+
+    override fun consumeFocus() {
+        _focus.value = null
+    }
+
+    /** Checklist button: see [ChecklistEditor.toggleChecklist]. Losing check marks can be undone. */
+    fun toggleChecklist(focusKey: Long?, selectionStart: Int, selectionEnd: Int) {
+        val before = body.content()
+        val result = body.toggleChecklist(focusKey, selectionStart, selectionEnd)
+        bodyChanged(result.focus)
+        if (result.droppedChecks) message(UiMessage.WithUndo(R.string.msg_checklist_to_text, undo = { restoreBody(before) }))
+    }
+
+    fun clearCheckedItems() {
+        val before = body.content()
+        val removed = body.clearChecked()
+        if (removed == 0) return
+        bodyChanged()
+        val count = Formatter(c.settings.currentOrDefault()).number(removed)
+        message(UiMessage.WithUndo(R.string.msg_checked_items_removed, undo = { restoreBody(before) }, args = listOf(count)))
+    }
+
+    fun uncheckAllItems() {
+        if (body.uncheckAll() > 0) bodyChanged()
     }
 
     fun dismissDraft() = viewModelScope.launch {
@@ -456,6 +532,9 @@ fun NoteEditorScreen(route: Route.NoteEditor) {
     val c = LocalContainer.current
     val vm: NoteEditorViewModel = viewModel { NoteEditorViewModel(c, route) }
     val state by vm.state.collectAsStateWithLifecycle()
+    val blocks by vm.blocks.collectAsStateWithLifecycle()
+    val focusRequest by vm.focusRequest.collectAsStateWithLifecycle()
+    val bodyFocus = remember { NoteBodyFocus() }
     val categories by vm.categories.collectAsStateWithLifecycle()
     val goals by vm.goals.collectAsStateWithLifecycle()
     val settings = LocalAppSettings.current
@@ -487,18 +566,29 @@ fun NoteEditorScreen(route: Route.NoteEditor) {
                     IconButton(onClick = { vm.update { it.copy(isPinned = !it.isPinned) } }) {
                         Icon(if (note.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin, stringResource(if (note.isPinned) R.string.unpin else R.string.pin))
                     }
+                    IconButton(onClick = { val sel = bodyFocus.selection; vm.toggleChecklist(bodyFocus.focusedKey, sel.start, sel.end) }) {
+                        Icon(Icons.Default.Checklist, stringResource(R.string.checklist_toggle))
+                    }
                     IconButton(onClick = { showColors = !showColors }) { Icon(Icons.Default.Palette, stringResource(R.string.color)) }
                     if (!settings.noteAutosave) IconButton(onClick = vm::saveNow) { Icon(Icons.Default.Check, stringResource(R.string.save)) }
                     Box {
                         IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.more)) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                            val progress = blocks.mapNotNull { it.block as? NoteBlock.Item }.let { l -> l.count { it.checked } to l.size }
+                            if (progress.second > 0) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.checklist_clear_checked)) }, leadingIcon = { Icon(Icons.Default.ClearAll, null) },
+                                    enabled = progress.first > 0, onClick = { menu = false; vm.clearCheckedItems() })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.checklist_uncheck_all)) }, leadingIcon = { Icon(Icons.Default.RemoveDone, null) },
+                                    enabled = progress.first > 0, onClick = { menu = false; vm.uncheckAllItems() })
+                                HorizontalDivider()
+                            }
                             DropdownMenuItem(text = { Text(stringResource(R.string.convert_to_task)) }, leadingIcon = { Icon(Icons.Default.TaskAlt, null) },
                                 onClick = { menu = false; vm.convertToTask { id -> nav.navigate(Route.TaskEditor(fromNoteId = id)) } })
                             DropdownMenuItem(text = { Text(stringResource(R.string.share)) }, leadingIcon = { Icon(Icons.Default.Share, null) }, onClick = {
                                 menu = false
                                 val send = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, listOf(note.title, note.content).filter { it.isNotBlank() }.joinToString("\n\n"))
+                                    putExtra(Intent.EXTRA_TEXT, listOf(note.title, Checklist.displayText(note.content)).filter { it.isNotBlank() }.joinToString("\n\n"))
                                 }
                                 context.startActivity(Intent.createChooser(send, context.getString(R.string.share)))
                             })
@@ -535,8 +625,7 @@ fun NoteEditorScreen(route: Route.NoteEditor) {
             Card(colors = CardDefaults.cardColors(containerColor = note.color.container(dark)), modifier = Modifier.fillMaxWidth()) {
                 TextField(note.title, { v -> vm.update { it.copy(title = v) } }, placeholder = { Text(stringResource(R.string.title)) },
                     textStyle = MaterialTheme.typography.titleLarge, colors = fieldColors, modifier = Modifier.fillMaxWidth())
-                TextField(note.content, { v -> vm.update { it.copy(content = v) } }, placeholder = { Text(stringResource(R.string.note_body_hint)) },
-                    textStyle = MaterialTheme.typography.bodyLarge, colors = fieldColors, minLines = 10, modifier = Modifier.fillMaxWidth())
+                NoteBodyEditor(blocks, focusRequest, bodyFocus, vm, fieldColors)
             }
             Spacer(Modifier.size(12.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -576,6 +665,3 @@ fun NoteEditorScreen(route: Route.NoteEditor) {
             onConfirm = { vm.discardAndClose() }, onDismiss = { confirmDiscard = false }, destructive = true)
     }
 }
-
-@Suppress("unused")
-private val unusedClickable = Modifier.clickable { }

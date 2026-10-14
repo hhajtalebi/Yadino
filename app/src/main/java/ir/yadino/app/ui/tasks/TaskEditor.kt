@@ -98,6 +98,7 @@ import ir.yadino.domain.model.Subtask
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.model.TaskKind
 import ir.yadino.domain.model.TaskStatus
+import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.recurrence.Frequency
 import ir.yadino.domain.recurrence.RecurrenceEnd
 import ir.yadino.domain.recurrence.RecurrenceEngine
@@ -152,17 +153,20 @@ class TaskEditorViewModel(c: AppContainer, private val route: Route.TaskEditor) 
                 val date = route.date?.let { LocalDate.ofEpochDay(it) }
                 val kind = TaskKind.entries.firstOrNull { it.name == route.kind } ?: TaskKind.TASK
                 val note = route.fromNoteId?.let { c.notes.get(it) }
+                // A checklist in the note becomes subtasks; the remaining text becomes the description.
+                val fromNote = note?.let { Checklist.split(it.content) }
                 val start = if (date != null && (kind != TaskKind.TASK || settings.defaultTaskTime != null)) settings.defaultTaskTime ?: LocalTime.of(9, 0) else null
                 val end = if (kind == TaskKind.EVENT && start != null) start.plusMinutes(settings.defaultTaskDurationMinutes.toLong()).takeIf { it.isAfter(start) } else null
                 val task = Task(
-                    id = Ids.newId(), title = note?.let { NoteFilters.displayTitle(it, 200) } ?: "", description = note?.content ?: "",
+                    id = Ids.newId(), title = note?.let { NoteFilters.displayTitle(it, 200) } ?: "", description = fromNote?.text ?: "",
                     kind = kind, date = date, startTime = start, endTime = end,
                     reminderOffsetMinutes = if (date != null) settings.defaultReminderOffsetMinutes else null,
                     goalId = route.goalId ?: note?.goalId, sourceNoteId = note?.id, categoryId = note?.categoryId, tags = note?.tags ?: emptyList(),
                     createdAt = now, updatedAt = now,
                 )
-                _state.value = TaskEditorState(true, true, task, emptyList(), sourceNoteTitle = note?.let { NoteFilters.displayTitle(it) })
-                initial = task to emptyList()
+                val subtasks = fromNote?.items.orEmpty().mapIndexed { i, item -> Subtask(Ids.newId(), task.id, item.text, item.checked, i, now, now) }
+                _state.value = TaskEditorState(true, true, task, subtasks, sourceNoteTitle = note?.let { NoteFilters.displayTitle(it) })
+                initial = task to subtasks
             }
         }
     }
