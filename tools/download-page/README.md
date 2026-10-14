@@ -15,7 +15,11 @@
 pip install segno                                  # اختیاری، برای کد QR
 python3 tools/download-page/build_page.py          # index.html + .nojekyll
 python3 tools/download-page/serve.py --port 8080   # پیش‌نمایش محلی
+python3 tools/download-page/build_page.py --standalone   # صفحه تک‌فایلی همراه APK
+NODE_PATH=<پوشه node_modules با jsdom@24> node tools/download-page/test_standalone.js
 ```
+
+**صفحه تک‌فایلی** (`release/yadino-<نسخه>-download.html`) خود APK و فونت‌ها را در خود دارد و بدون سرور یا اینترنت کار می‌کند؛ برای فرستادن به گوشی با پیام‌رسان یا کابل مناسب است. `test_standalone.js` بررسی می‌کند که دکمه دانلود دقیقاً همان APK را (بایت‌به‌بایت، با نوع و نام درست) تحویل دهد و فایل ناقص به‌جای APK خراب، پیام خطا بدهد.
 
 `serve.py` فقط صفحه، APKهای فهرست‌شده در `release/SHA256SUMS.txt`، همین فایل و دو فونت را برمی‌گرداند؛ نه بقیه مخزن را. کد QR صفحه پیش‌نمایش به همان نشانی‌ای اشاره می‌کند که صفحه با آن باز شده است.
 

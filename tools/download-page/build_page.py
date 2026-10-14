@@ -9,6 +9,11 @@ sections of CHANGELOG.md for the current minor version.
 
     python3 tools/download-page/build_page.py              # writes index.html
     python3 tools/download-page/build_page.py --url URL    # QR code for another address
+    python3 tools/download-page/build_page.py --standalone # release/yadino-<v>-download.html
+
+--standalone writes a single self-contained file that carries the main APK inside it
+(base64, unpacked by the browser when the button is pressed) and the fonts, so it works
+without any server or network: open it on the phone, press the button, install.
 
 The QR code needs the pure-Python package `segno` (pip install segno); without it the QR
 block is left out. serve.py uses the same renderer for a local preview.
@@ -16,6 +21,7 @@ block is left out. serve.py uses the same renderer for a local preview.
 from __future__ import annotations
 
 import argparse
+import base64
 import html
 import os
 import re
@@ -215,7 +221,34 @@ footer a{margin:0 6px}
 """
 
 
-def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT, check_signature: bool = False) -> str:
+# Unpacks the embedded APK (standalone page) into a Blob when the button is pressed. The size
+# check catches a page that was cut short on the way (e.g. by a messenger), so no broken
+# APK is handed to the installer.
+STANDALONE_SCRIPT = """<script>
+document.getElementById("dl").addEventListener("click", function (e) {
+  if (this.dataset.ready) return;
+  e.preventDefault();
+  var error = document.getElementById("dl-error");
+  try {
+    var node = document.getElementById("apk");
+    var bin = atob(node ? node.textContent.trim() : "");
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (!node || bytes.length !== Number(node.dataset.size)) throw new Error("size");
+    this.href = URL.createObjectURL(new Blob([bytes], {type: "application/vnd.android.package-archive"}));
+    this.dataset.ready = "1";
+    this.click();
+  } catch (err) {
+    error.textContent = "این فایل HTML کامل نیست و برنامه را نمی‌توان از آن برداشت. دوباره آن را دریافت کنید.";
+    error.hidden = false;
+  }
+});
+</script>"""
+
+
+def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT, check_signature: bool = False,
+           standalone: bool = False) -> str:
+    """The page. [standalone]: one self-contained file with the main APK and the fonts embedded."""
     info = release_info(root)
     date, highlights = changelog(info.version, root)
     ref = ref or git_ref(root)
@@ -228,9 +261,15 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
             print(f"warning: {primary.name} is not signed with the repository key ({found})", file=sys.stderr)
             cert = found
     version_fa = fa(info.version)
+    tail = ""  # standalone page: the unpacking script and the embedded APK, set below
     minor_fa = fa(".".join(info.version.split(".")[:2]))
-    qr = qr_svg(page_url)
-    css = CSS % {"regular": FONT_REGULAR, "bold": FONT_BOLD}
+    qr = None if standalone else qr_svg(page_url)
+    if standalone:
+        fonts = {k: "data:font/ttf;base64," + base64.b64encode((root / f).read_bytes()).decode("ascii")
+                 for k, f in (("regular", FONT_REGULAR), ("bold", FONT_BOLD))}
+    else:
+        fonts = {"regular": FONT_REGULAR, "bold": FONT_BOLD}
+    css = CSS % fonts
     icon_uri = "data:image/svg+xml," + urllib.parse.quote(ICON_SVG)
 
     meta = [f"نسخه {version_fa}"] + ([esc(date)] if date else []) + ["اندروید ۸ و بالاتر"]
@@ -239,7 +278,28 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
         "<br>بزرگ‌تر و کندتر؛ با همان کلید امضا شده و روی همین نسخه هم نصب می‌شود.</div>"
         for f in info.others
     )
-    qr_block = "" if not qr else f"""
+    download = f'<a class="btn" href="release/{esc(primary.name)}" download>دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>'
+    payload = script = ""
+    if standalone:
+        apk = (root / "release" / primary.name).read_bytes()
+        others = (f'<div class="alt">این صفحه خود برنامه را در خود دارد و بدون اینترنت کار می‌کند. '
+                  'اگر با زدن دکمه دانلود شروع نشد، خود همین فایل HTML را ذخیره کنید و در مرورگر (مثل Chrome) باز کنید.<br>'
+                  f'نسخه اشکال‌زدایی و فایل‌های دیگر در <a href="https://github.com/{REPO}/tree/{ref}/release">پوشه release مخزن گیت‌هاب</a> هستند.</div>')
+        download = (f'<a class="btn" id="dl" href="#" download="{esc(primary.name)}">دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>'
+                    '<p id="dl-error" class="note" role="alert" hidden></p>'
+                    '<noscript><p class="note">برای دانلود، این فایل را در یک مرورگر (مثل Chrome) باز کنید؛ جاوااسکریپت باید فعال باشد.</p></noscript>')
+        payload = (f'<script id="apk" type="application/octet-stream" data-size="{len(apk)}">'
+                   + base64.b64encode(apk).decode("ascii") + "</script>")
+        script = STANDALONE_SCRIPT
+        tail = f"{script}\n{payload}\n"
+    if standalone:
+        qr_block = """
+    <section class="card">
+      <h2>این صفحه روی رایانه باز است؟</h2>
+      <p style="margin:0">همین فایل HTML را به گوشی بفرستید (مثلاً با پیام‌رسان، ایمیل یا کابل)، روی گوشی با مرورگر باز کنید و «دانلود یادینو» را بزنید. یا روی رایانه دانلود کنید و فایل APK را به گوشی منتقل کنید.</p>
+    </section>"""
+    else:
+        qr_block = "" if not qr else f"""
     <section class="card qr" aria-label="کد QR">
       <div class="code">{qr}</div>
       <div>
@@ -286,7 +346,7 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
 </header>
 <main>
   <section class="card download">
-    <a class="btn" href="release/{esc(primary.name)}" download>دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>
+    {download}
     {others}
     <p class="note"><b>نسخه آزمایشی:</b> یادینو با آزمون‌های خودکار بررسی شده، اما هنوز روی گوشی واقعی اجرا نشده است و ممکن است جایی خطا داشته باشد. اگر برنامه متوقف شد، صفحه «گزارش خطا» باز می‌شود؛ راهنمای آن پایین همین صفحه است.</p>
   </section>
@@ -346,7 +406,7 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
   یادینو هیچ داده‌ای جمع‌آوری یا ارسال نمی‌کند.<br>
   <a href="https://github.com/{REPO}/tree/{ref}">کد منبع</a>·<a href="{blob}/CHANGELOG.md">تغییرات نسخه‌ها</a>·<a href="{blob}/docs/TEST_REPORT.md">گزارش آزمون</a>·<a href="{blob}/ROADMAP.md">نقشه راه</a>
 </footer>
-</body>
+{tail}</body>
 </html>
 """
 
@@ -355,14 +415,20 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--url", default=PAGES_URL, help="address encoded in the QR code (default: GitHub Pages)")
     parser.add_argument("--ref", default=None, help="git branch for links to documents (default: current branch)")
-    parser.add_argument("--out", default=str(ROOT / "index.html"))
+    parser.add_argument("--standalone", action="store_true",
+                        help="one self-contained file with the main APK inside (default: release/yadino-<version>-download.html)")
+    parser.add_argument("--out", default=None, help="output file (default: index.html, or the standalone file name)")
     args = parser.parse_args()
-    page = render(args.url, args.ref, check_signature=True)
-    Path(args.out).write_text(page, encoding="utf-8")
-    nojekyll = ROOT / ".nojekyll"  # GitHub Pages: serve the files as they are
-    if not nojekyll.exists():
-        nojekyll.write_text("", encoding="utf-8")
-    print(f"wrote {args.out} ({len(page.encode('utf-8'))} bytes){'' if qr_svg(args.url) else ' — without QR code (pip install segno)'}")
+    page = render(args.url, args.ref, check_signature=True, standalone=args.standalone)
+    out = Path(args.out) if args.out else (
+        ROOT / "release" / f"yadino-{release_info().version}-download.html" if args.standalone else ROOT / "index.html")
+    out.write_text(page, encoding="utf-8")
+    if not args.standalone:
+        nojekyll = ROOT / ".nojekyll"  # GitHub Pages: serve the files as they are
+        if not nojekyll.exists():
+            nojekyll.write_text("", encoding="utf-8")
+    qr_note = "" if args.standalone or qr_svg(args.url) else " — without QR code (pip install segno)"
+    print(f"wrote {out} ({len(page.encode('utf-8'))} bytes){qr_note}")
 
 
 if __name__ == "__main__":

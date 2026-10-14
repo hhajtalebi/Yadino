@@ -108,7 +108,10 @@ YADINO_KEY_ALIAS=androiddebugkey python3 tools/offline-build/build.py release
 pip install segno                                   # فقط برای کد QR (اختیاری)
 python3 tools/download-page/build_page.py           # ساخت index.html و .nojekyll در ریشه مخزن
 python3 tools/download-page/serve.py --port 8080    # پیش‌نمایش محلی (فقط صفحه، APKها و فونت‌ها)
+python3 tools/download-page/build_page.py --standalone   # release/yadino-<نسخه>-download.html
 ```
+
+- **صفحه تک‌فایلی** (`--standalone`): یک فایل HTML که APK اصلی و فونت‌ها را به‌صورت Base64 در خود دارد. دکمه دانلود، فایل را در مرورگر به APK برمی‌گرداند (Blob)؛ به سرور یا اینترنت نیازی نیست. اگر اندازه داده درون فایل درست نباشد (فایل در راه ناقص شده باشد)، پیام خطا نمایش داده می‌شود. `tools/download-page/test_standalone.js` این رفتار را در jsdom بررسی می‌کند.
 
 - **انتشار با GitHub Pages**: در تنظیمات مخزن ← Pages، منبع را «Deploy from a branch»، شاخه‌ای که `index.html` در آن است و پوشه `/ (root)` بگذارید. نشانی صفحه `https://hhajtalebi.github.io/Yadino/` است و APKها از همان نشانی (`release/…`) دانلود می‌شوند. فایل `.nojekyll` باعث می‌شود فایل‌ها همان‌طور که هستند منتشر شوند.
 - پس از هر انتشار و به‌روز کردن `release/`، صفحه را دوباره بسازید.

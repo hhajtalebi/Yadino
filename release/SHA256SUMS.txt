@@ -1,2 +1,3 @@
 b3426d77a409ba9df35f9730ac5799fbd1a64baee546bc8c023a9f568a5b727a  yadino-1.3.1-release.apk
 327ba65122231b5171181b341c76da0c9378453c1e3446b62098d6f274ffb14c  yadino-1.3.1-debug.apk
+8f3e29fdce10bdb14d88db67f492b33ddcf572c4f36c700c9b7ea8f1be64beb3  yadino-1.3.1-download.html
