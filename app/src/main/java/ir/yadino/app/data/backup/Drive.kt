@@ -8,7 +8,6 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import ir.yadino.app.BuildConfig
 import ir.yadino.domain.json.Json
-import ir.yadino.domain.json.JsonArray
 import ir.yadino.domain.json.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -391,7 +390,4 @@ class GoogleDriveClient(
             DriveResult.NetworkError
         }
     }
-
-    @Suppress("unused")
-    private fun JsonArray.strings() = items
 }

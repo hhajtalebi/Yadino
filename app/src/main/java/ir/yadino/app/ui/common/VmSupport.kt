@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import ir.yadino.app.R
 import ir.yadino.app.core.AppClock
 import ir.yadino.app.core.ErrorReporter
+import ir.yadino.app.core.Formatter
 import ir.yadino.app.data.repository.ValidationException
 import ir.yadino.app.di.AppContainer
 import ir.yadino.app.ui.LocalSnackbar
@@ -41,6 +42,9 @@ abstract class YadinoViewModel(protected val c: AppContainer) : ViewModel() {
         _messages.tryEmit(m)
     }
 
+    /** A count formatted for a message argument with the user's digits (Persian or Latin). */
+    protected fun formatNumber(n: Int): String = Formatter(c.settings.currentOrDefault()).number(n)
+
     /** Runs [block], turning validation and storage errors into user messages. */
     protected fun launchSafe(onError: (Throwable) -> Unit = {}, block: suspend () -> Unit) = viewModelScope.launch {
         try {
@@ -67,29 +71,7 @@ fun todayFlow(clock: AppClock): Flow<LocalDate> = flow {
 }.distinctUntilChanged()
 
 @Composable
-fun validationText(e: ValidationError): String = stringResource(
-    when (e) {
-        ValidationError.TITLE_REQUIRED -> R.string.v_title_required
-        ValidationError.TITLE_TOO_LONG -> R.string.v_title_too_long
-        ValidationError.DESCRIPTION_TOO_LONG -> R.string.v_description_too_long
-        ValidationError.CONTENT_TOO_LONG -> R.string.v_content_too_long
-        ValidationError.END_BEFORE_START -> R.string.v_end_before_start
-        ValidationError.TIME_WITHOUT_DATE -> R.string.v_time_without_date
-        ValidationError.DUE_BEFORE_DATE -> R.string.v_due_before_date
-        ValidationError.REMINDER_WITHOUT_DATE -> R.string.v_reminder_without_date
-        ValidationError.REMINDER_OUT_OF_RANGE -> R.string.v_reminder_range
-        ValidationError.RECURRENCE_WITHOUT_DATE -> R.string.v_recurrence_without_date
-        ValidationError.RECURRENCE_UNTIL_BEFORE_START -> R.string.v_until_before_start
-        ValidationError.TOO_MANY_TAGS -> R.string.v_too_many_tags
-        ValidationError.TAG_TOO_LONG -> R.string.v_tag_too_long
-        ValidationError.DEADLINE_BEFORE_START -> R.string.v_deadline_before_start
-        ValidationError.PROGRESS_OUT_OF_RANGE -> R.string.v_progress_range
-        ValidationError.TARGET_OUT_OF_RANGE -> R.string.v_target_range
-        ValidationError.NAME_REQUIRED -> R.string.v_name_required
-        ValidationError.NAME_TOO_LONG -> R.string.v_name_too_long
-        ValidationError.NAME_DUPLICATE -> R.string.v_name_duplicate
-    },
-)
+fun validationText(e: ValidationError): String = stringResource(validationRes(e))
 
 /** Shows the ViewModel's messages as snackbars. */
 @Composable
@@ -137,4 +119,7 @@ fun validationRes(e: ValidationError): Int = when (e) {
     ValidationError.NAME_REQUIRED -> R.string.v_name_required
     ValidationError.NAME_TOO_LONG -> R.string.v_name_too_long
     ValidationError.NAME_DUPLICATE -> R.string.v_name_duplicate
+    ValidationError.ITEMS_REQUIRED -> R.string.v_items_required
+    ValidationError.TOO_MANY_ITEMS -> R.string.v_too_many_items
+    ValidationError.DAY_OUT_OF_RANGE -> R.string.v_day_out_of_range
 }

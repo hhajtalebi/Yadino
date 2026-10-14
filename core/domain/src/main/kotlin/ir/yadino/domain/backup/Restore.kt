@@ -1,5 +1,6 @@
 package ir.yadino.domain.backup
 
+import ir.yadino.domain.model.PlanTemplate
 import ir.yadino.domain.validation.Limits
 import java.time.Instant
 
@@ -34,6 +35,8 @@ object BackupValidator {
         uniqueIds("milestones", data.milestones) { it.id }
         uniqueIds("habits", data.habits) { it.id }
         uniqueIds("habitLogs", data.habitLogs) { it.id }
+        uniqueIds("templates", data.templates) { it.id }
+        uniqueIds("templateItems", data.templateItems) { it.id }
 
         val logKeys = HashSet<String>()
         for (l in data.habitLogs) {
@@ -48,6 +51,14 @@ object BackupValidator {
             if (it.targetPerDay !in 1..Limits.MAX_HABIT_TARGET) errors += "habits: invalid target (${it.id})"
         }
         data.categories.forEach { if (it.name.isBlank()) errors += "categories: empty name (${it.id})" }
+        data.templates.forEach {
+            if (it.name.isBlank()) errors += "templates: empty name (${it.id})"
+            if (it.spanDays != PlanTemplate.DAY && it.spanDays != PlanTemplate.WEEK) errors += "templates: invalid span (${it.id})"
+        }
+        data.templateItems.forEach {
+            if (it.title.isBlank()) errors += "templateItems: empty title (${it.id})"
+            if (it.dayOffset == null && it.dueOffset == null) errors += "templateItems: no day (${it.id})"
+        }
 
         val taskIds = data.tasks.map { it.id }.toSet()
         val goalIds = data.goals.map { it.id }.toSet()
@@ -62,6 +73,9 @@ object BackupValidator {
         val badCategory = data.tasks.count { it.categoryId != null && it.categoryId !in categoryIds } +
             data.notes.count { it.categoryId != null && it.categoryId !in categoryIds }
         if (badCategory > 0) warnings += "records with unknown category: $badCategory"
+        val templateIds = data.templates.map { it.id }.toSet()
+        val orphanItems = data.templateItems.count { it.templateId !in templateIds }
+        if (orphanItems > 0) warnings += "template items without template: $orphanItems"
         return ValidationReport(errors, warnings)
     }
 
@@ -72,6 +86,7 @@ object BackupValidator {
         val habitIds = data.habits.map { it.id }.toSet()
         val categoryIds = data.categories.map { it.id }.toSet()
         val noteIds = data.notes.map { it.id }.toSet()
+        val templateIds = data.templates.map { it.id }.toSet()
         return data.copy(
             tasks = data.tasks.map { t ->
                 t.copy(
@@ -89,6 +104,9 @@ object BackupValidator {
             milestones = data.milestones.filter { it.goalId in goalIds },
             habits = data.habits.map { h -> h.copy(goalId = h.goalId?.takeIf { it in goalIds }) },
             habitLogs = data.habitLogs.filter { it.habitId in habitIds },
+            templateItems = data.templateItems.filter { it.templateId in templateIds }.map { x ->
+                x.copy(categoryId = x.categoryId?.takeIf { it in categoryIds }, goalId = x.goalId?.takeIf { it in goalIds })
+            },
         )
     }
 }
@@ -124,14 +142,31 @@ object RestorePlanner {
         val already = lastRestoredChecksum != null && lastRestoredChecksum.equals(incoming.info.checksum, ignoreCase = true)
         val data = BackupValidator.sanitize(incoming.data)
         return when (mode) {
-            RestoreMode.REPLACE -> RestorePlan(
-                mode, data,
-                RestoreStats(added = data.totalRecords, updated = 0, kept = 0, removed = local.totalRecords),
-                already,
-            )
+            RestoreMode.REPLACE -> {
+                if (keepsLocalTemplates(incoming)) {
+                    // The file predates plan templates, so it cannot say anything about them:
+                    // keep the local ones instead of deleting them.
+                    val result = BackupValidator.sanitize(data.copy(templates = local.templates, templateItems = local.templateItems))
+                    val kept = result.templates.size + result.templateItems.size
+                    RestorePlan(
+                        mode, result,
+                        RestoreStats(added = data.totalRecords, updated = 0, kept = kept, removed = local.totalRecords - kept),
+                        already,
+                    )
+                } else {
+                    RestorePlan(
+                        mode, data,
+                        RestoreStats(added = data.totalRecords, updated = 0, kept = 0, removed = local.totalRecords),
+                        already,
+                    )
+                }
+            }
             RestoreMode.MERGE -> merge(local, data, already)
         }
     }
+
+    /** True when [file] was written before templates existed (its restore keeps local templates). */
+    fun keepsLocalTemplates(file: BackupFile): Boolean = file.info.formatVersion < BackupCodec.TEMPLATES_SINCE
 
     private class Counter {
         var added = 0
@@ -177,6 +212,8 @@ object RestorePlanner {
             milestones = mergeById(local.milestones, incoming.milestones, { it.id }, { it.updatedAt }, c),
             habits = mergeById(local.habits, incoming.habits, { it.id }, { it.updatedAt }, c),
             habitLogs = logs.values.toList(),
+            templates = mergeById(local.templates, incoming.templates, { it.id }, { it.updatedAt }, c),
+            templateItems = mergeById(local.templateItems, incoming.templateItems, { it.id }, { it.updatedAt }, c),
             // local settings are kept in merge mode
             settings = local.settings,
             dashboard = local.dashboard,

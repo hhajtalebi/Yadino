@@ -197,7 +197,7 @@ data class Category(
 )
 
 /** Entity types, used by the deletion log (tombstones for future sync) and the backup. */
-enum class EntityType { CATEGORY, TASK, SUBTASK, TASK_COMPLETION, NOTE, GOAL, MILESTONE, HABIT, HABIT_LOG }
+enum class EntityType { CATEGORY, TASK, SUBTASK, TASK_COMPLETION, NOTE, GOAL, MILESTONE, HABIT, HABIT_LOG, TEMPLATE, TEMPLATE_ITEM }
 
 /** Tombstone of a deleted record (kept so that a future sync can propagate deletions). */
 data class Deletion(val entityType: EntityType, val entityId: String, val deletedAt: Instant)

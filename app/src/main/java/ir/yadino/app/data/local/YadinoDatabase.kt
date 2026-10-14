@@ -16,6 +16,7 @@ import ir.yadino.app.data.local.dao.NoteDao
 import ir.yadino.app.data.local.dao.NoteDraftDao
 import ir.yadino.app.data.local.dao.SubtaskDao
 import ir.yadino.app.data.local.dao.TaskDao
+import ir.yadino.app.data.local.dao.TemplateDao
 import ir.yadino.app.data.local.entity.CategoryEntity
 import ir.yadino.app.data.local.entity.DeletionEntity
 import ir.yadino.app.data.local.entity.GoalEntity
@@ -24,9 +25,11 @@ import ir.yadino.app.data.local.entity.HabitLogEntity
 import ir.yadino.app.data.local.entity.MilestoneEntity
 import ir.yadino.app.data.local.entity.NoteDraftEntity
 import ir.yadino.app.data.local.entity.NoteEntity
+import ir.yadino.app.data.local.entity.PlanTemplateEntity
 import ir.yadino.app.data.local.entity.SubtaskEntity
 import ir.yadino.app.data.local.entity.TaskCompletionEntity
 import ir.yadino.app.data.local.entity.TaskEntity
+import ir.yadino.app.data.local.entity.TemplateItemEntity
 
 @Database(
     entities = [
@@ -41,6 +44,8 @@ import ir.yadino.app.data.local.entity.TaskEntity
         HabitLogEntity::class,
         NoteDraftEntity::class,
         DeletionEntity::class,
+        PlanTemplateEntity::class,
+        TemplateItemEntity::class,
     ],
     version = YadinoDatabase.VERSION,
     exportSchema = true,
@@ -57,17 +62,19 @@ abstract class YadinoDatabase : RoomDatabase() {
     abstract fun habitLogDao(): HabitLogDao
     abstract fun categoryDao(): CategoryDao
     abstract fun deletionDao(): DeletionDao
+    abstract fun templateDao(): TemplateDao
 
     companion object {
-        const val VERSION = 1
+        /** 1: app 1.0–1.2; 2: app 1.3 (plan templates). */
+        const val VERSION = 2
         const val NAME = "yadino.db"
 
         /**
-         * Schema migrations. Every schema change must add a [Migration] here and bump
-         * [VERSION]; destructive fallback is intentionally NOT enabled so user data is
-         * never dropped silently. Exported schemas live in `app/schemas`.
+         * Schema migrations. Every schema change must add a [Migration] (see [Migrations])
+         * and bump [VERSION]; destructive fallback is intentionally NOT enabled so user data
+         * is never dropped silently. Exported schemas live in `app/schemas`.
          */
-        val MIGRATIONS: Array<Migration> = emptyArray()
+        val MIGRATIONS: Array<Migration> = Migrations.ALL
 
         fun build(context: Context): YadinoDatabase =
             Room.databaseBuilder(context.applicationContext, YadinoDatabase::class.java, NAME)

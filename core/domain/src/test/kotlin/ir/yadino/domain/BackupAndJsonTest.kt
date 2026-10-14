@@ -103,7 +103,7 @@ class BackupAndJsonTest {
         assertTrue(result is BackupReadResult.Success)
         val file = (result as BackupReadResult.Success).file
         assertEquals(data, file.data)
-        assertEquals(1, file.info.formatVersion)
+        assertEquals(BackupCodec.FORMAT_VERSION, file.info.formatVersion)
         assertEquals(NOW, file.info.createdAt)
         assertEquals(data.counts(), file.info.counts)
         assertTrue(result.warnings.isEmpty())
@@ -120,7 +120,8 @@ class BackupAndJsonTest {
         assertEquals(BackupError.NOT_JSON, (BackupCodec.decode(truncated) as BackupReadResult.Failure).error)
         assertEquals(BackupError.EMPTY_FILE, (BackupCodec.decode("  ") as BackupReadResult.Failure).error)
         assertEquals(BackupError.NOT_A_YADINO_BACKUP, (BackupCodec.decode("""{"hello":"world"}""") as BackupReadResult.Failure).error)
-        val newer = text.replace("\"formatVersion\":1", "\"formatVersion\":99")
+        val newer = text.replace("\"formatVersion\":${BackupCodec.FORMAT_VERSION}", "\"formatVersion\":99")
+        assertTrue(newer != text)
         assertEquals(BackupError.NEWER_FORMAT, (BackupCodec.decode(newer) as BackupReadResult.Failure).error)
     }
 

@@ -6,9 +6,11 @@ import ir.yadino.app.data.local.entity.HabitEntity
 import ir.yadino.app.data.local.entity.HabitLogEntity
 import ir.yadino.app.data.local.entity.MilestoneEntity
 import ir.yadino.app.data.local.entity.NoteEntity
+import ir.yadino.app.data.local.entity.PlanTemplateEntity
 import ir.yadino.app.data.local.entity.SubtaskEntity
 import ir.yadino.app.data.local.entity.TaskCompletionEntity
 import ir.yadino.app.data.local.entity.TaskEntity
+import ir.yadino.app.data.local.entity.TemplateItemEntity
 import ir.yadino.domain.backup.HabitScheduleCodec
 import ir.yadino.domain.model.Category
 import ir.yadino.domain.model.CategoryKind
@@ -20,12 +22,14 @@ import ir.yadino.domain.model.HabitLog
 import ir.yadino.domain.model.Milestone
 import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteColor
+import ir.yadino.domain.model.PlanTemplate
 import ir.yadino.domain.model.Priority
 import ir.yadino.domain.model.Subtask
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.model.TaskCompletion
 import ir.yadino.domain.model.TaskKind
 import ir.yadino.domain.model.TaskStatus
+import ir.yadino.domain.model.TemplateItem
 import ir.yadino.domain.recurrence.RecurrenceRule
 import java.time.Instant
 import java.time.LocalDate
@@ -132,3 +136,25 @@ fun CategoryEntity.toDomain() = Category(
 )
 
 fun Category.toEntity() = CategoryEntity(id, name.trim(), color.name, kind.name, isDefault, sortOrder, createdAt.toDb(), updatedAt.toDb())
+
+fun PlanTemplateEntity.toDomain() = PlanTemplate(id, name, description, spanDays, createdAt.toInstant(), updatedAt.toInstant())
+fun PlanTemplate.toEntity() = PlanTemplateEntity(id, name.trim(), description, spanDays, createdAt.toDb(), updatedAt.toDb())
+
+/** Subtask titles of template items are stored one per line (titles are single-line). */
+internal fun encodeLines(lines: List<String>): String = lines.joinToString("\n") { it.replace('\n', ' ').replace('\r', ' ') }
+internal fun decodeLines(raw: String): List<String> = if (raw.isEmpty()) emptyList() else raw.split("\n").filter { it.isNotBlank() }
+
+fun TemplateItemEntity.toDomain() = TemplateItem(
+    id = id, templateId = templateId, title = title, description = description, kind = enumOr(kind, TaskKind.TASK),
+    priority = Priority.fromLevel(priority), categoryId = categoryId, tags = decodeTags(tags), dayOffset = dayOffset,
+    startTime = startMinute?.toTime(), endTime = endMinute?.toTime(), dueOffset = dueOffset, dueTime = dueMinute?.toTime(),
+    reminderOffsetMinutes = reminderOffset, goalId = goalId, subtasks = decodeLines(subtasks), sortOrder = sortOrder,
+    createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(),
+)
+
+fun TemplateItem.toEntity() = TemplateItemEntity(
+    id = id, templateId = templateId, title = title.trim(), description = description, kind = kind.name, priority = priority.level,
+    categoryId = categoryId, tags = encodeTags(tags), dayOffset = dayOffset, startMinute = startTime?.toDb(), endMinute = endTime?.toDb(),
+    dueOffset = dueOffset, dueMinute = dueTime?.toDb(), reminderOffset = reminderOffsetMinutes, goalId = goalId,
+    subtasks = encodeLines(subtasks), sortOrder = sortOrder, createdAt = createdAt.toDb(), updatedAt = updatedAt.toDb(),
+)

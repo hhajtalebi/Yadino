@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Task
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Upcoming
+import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -224,7 +225,7 @@ class DashboardViewModel(c: AppContainer) : YadinoViewModel(c) {
 
     fun moveAllOverdue() = launchSafe {
         val n = c.tasks.moveOverdueToToday()
-        message(UiMessage.Text(R.string.msg_moved_count, listOf(n.toString())))
+        message(UiMessage.Text(R.string.msg_moved_count, listOf(formatNumber(n))))
     }
 
     fun backupReminderShortcut() = Unit
@@ -373,6 +374,7 @@ private fun shortcutLabel(a: ShortcutAction): String = stringResource(
         ShortcutAction.OPEN_REPORTS -> R.string.reports
         ShortcutAction.OPEN_SEARCH -> R.string.search
         ShortcutAction.BACKUP_NOW -> R.string.backup_now
+        ShortcutAction.OPEN_TEMPLATES -> R.string.templates_title
     },
 )
 
@@ -386,6 +388,7 @@ private fun shortcutIcon(a: ShortcutAction): ImageVector = when (a) {
     ShortcutAction.OPEN_REPORTS -> Icons.AutoMirrored.Filled.ShowChart
     ShortcutAction.OPEN_SEARCH -> Icons.Default.Search
     ShortcutAction.BACKUP_NOW -> Icons.Default.Backup
+    ShortcutAction.OPEN_TEMPLATES -> Icons.Default.ViewAgenda
 }
 
 @Composable
@@ -406,6 +409,7 @@ private fun Shortcuts(shortcuts: List<ShortcutAction>, onQuickNote: () -> Unit, 
                         ShortcutAction.OPEN_REPORTS -> nav.navigate(Route.Reports)
                         ShortcutAction.OPEN_SEARCH -> nav.navigate(Route.Search)
                         ShortcutAction.BACKUP_NOW -> nav.navigate(Route.SettingsData)
+                        ShortcutAction.OPEN_TEMPLATES -> nav.navigate(Route.Templates)
                     }
                 },
                 label = { Text(shortcutLabel(a)) },

@@ -139,7 +139,7 @@ enum class DashboardSection(val defaultCount: Int) {
 }
 
 /** Quick actions available as dashboard shortcuts. */
-enum class ShortcutAction { NEW_TASK, NEW_NOTE, NEW_EVENT, NEW_HABIT, NEW_GOAL, OPEN_CALENDAR, OPEN_REPORTS, OPEN_SEARCH, BACKUP_NOW }
+enum class ShortcutAction { NEW_TASK, NEW_NOTE, NEW_EVENT, NEW_HABIT, NEW_GOAL, OPEN_CALENDAR, OPEN_REPORTS, OPEN_SEARCH, BACKUP_NOW, OPEN_TEMPLATES }
 
 data class DashboardSectionConfig(val section: DashboardSection, val visible: Boolean, val itemCount: Int)
 

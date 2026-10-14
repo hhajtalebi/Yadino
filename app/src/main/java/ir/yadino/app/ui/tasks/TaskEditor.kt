@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -34,7 +33,6 @@ import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -93,7 +91,6 @@ import ir.yadino.domain.model.Goal
 import ir.yadino.domain.model.GoalStatus
 import ir.yadino.domain.model.Ids
 import ir.yadino.domain.model.NoteFilters
-import ir.yadino.domain.model.Priority
 import ir.yadino.domain.model.Subtask
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.model.TaskKind
@@ -112,7 +109,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -387,7 +383,7 @@ fun FieldRow(icon: ImageVector, label: String, value: String, onClick: () -> Uni
 }
 
 @Composable
-private fun GoalPicker(goals: List<Goal>, selected: String?, onSelect: (String?) -> Unit) {
+fun GoalPicker(goals: List<Goal>, selected: String?, onSelect: (String?) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val sel = goals.firstOrNull { it.id == selected }
     androidx.compose.foundation.layout.Box {
@@ -564,16 +560,3 @@ private fun SubtaskEditor(subtasks: List<Subtask>, vm: TaskEditorViewModel) {
         )
     }
 }
-
-@Suppress("unused")
-private val unusedAlarmIcon = Icons.Default.Alarm
-
-@Suppress("unused")
-private fun Priority.isHigh() = level >= 2
-
-@Suppress("unused")
-private val unusedDayOfWeek = DayOfWeek.SATURDAY
-
-@Suppress("unused")
-@Composable
-private fun SaveButton(onClick: () -> Unit) = Button(onClick = onClick) { Text(stringResource(R.string.save)) }

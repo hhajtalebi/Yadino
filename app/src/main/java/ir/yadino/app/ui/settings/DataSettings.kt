@@ -92,6 +92,7 @@ import ir.yadino.domain.backup.BackupFile
 import ir.yadino.domain.backup.BackupReadResult
 import ir.yadino.domain.backup.RestoreMode
 import ir.yadino.domain.backup.RestorePlan
+import ir.yadino.domain.backup.RestorePlanner
 import ir.yadino.domain.model.AutoBackupFrequency
 import ir.yadino.domain.model.BackupReminderFrequency
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -373,7 +374,7 @@ fun SettingsDataScreen() {
             val st = stats
             SettingRow(stringResource(R.string.local_storage), st?.let {
                 stringResource(R.string.storage_summary, fmt.number(it.tasks), fmt.number(it.notes), fmt.number(it.goals), fmt.number(it.habits),
-                    fmt.digits(String.format(java.util.Locale.ROOT, "%.1f", it.databaseBytes / 1024.0)))
+                    fmt.number(it.templates), fmt.digits(String.format(java.util.Locale.ROOT, "%.1f", it.databaseBytes / 1024.0)))
             } ?: "…", Icons.Default.Storage)
             SettingRow(stringResource(R.string.local_first_note), stringResource(R.string.local_first_desc))
         }
@@ -545,6 +546,12 @@ private fun RestoreDialog(p: RestorePreview, vm: DataViewModel) {
                 if (p.file.info.encrypted) Text(stringResource(R.string.restore_encrypted), style = MaterialTheme.typography.bodySmall)
                 Text(stringResource(R.string.restore_counts, fmt.number(counts.tasks), fmt.number(counts.notes), fmt.number(counts.goals), fmt.number(counts.habits)),
                     style = MaterialTheme.typography.bodySmall)
+                if (counts.templates > 0) {
+                    Text(stringResource(R.string.restore_counts_templates, fmt.number(counts.templates)), style = MaterialTheme.typography.bodySmall)
+                }
+                if (RestorePlanner.keepsLocalTemplates(p.file)) {
+                    Text(stringResource(R.string.restore_keeps_templates), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (p.warnings.isNotEmpty()) Text(stringResource(R.string.restore_warnings, fmt.number(p.warnings.size)), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Text(stringResource(R.string.restore_mode), style = MaterialTheme.typography.labelLarge)
                 RestoreMode.entries.forEach { m ->

@@ -126,7 +126,7 @@ S = {
 "status_done": "انجام‌شده",
 "status_in_progress": "در حال انجام",
 "status_todo": "انجام‌نشده",
-"storage_summary": "%1$s کار، %2$s یادداشت، %3$s هدف، %4$s عادت — %5$s کیلوبایت",
+"storage_summary": "%1$s کار، %2$s یادداشت، %3$s هدف، %4$s عادت، %5$s قالب — %6$s کیلوبایت",
 "streak_days": "زنجیره: %1$s روز",
 "streak_weeks": "زنجیره: %1$s هفته",
 "subtasks": "زیرکارها",

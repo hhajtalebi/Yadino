@@ -48,7 +48,7 @@ interface DataSideEffects {
 /** Thrown when input fails validation; the UI shows the Persian message of each error. */
 class ValidationException(val errors: List<ValidationError>) : Exception(errors.joinToString())
 
-private suspend fun YadinoDatabase.logDeletion(type: EntityType, id: String, at: Long) =
+internal suspend fun YadinoDatabase.logDeletion(type: EntityType, id: String, at: Long) =
     deletionDao().insert(DeletionEntity(type.name, id, at))
 
 class TaskRepository(
@@ -185,8 +185,22 @@ class TaskRepository(
         db.withTransaction {
             taskDao.upsert(task.toEntity())
             subtaskDao.upsertAll(subtasks.map { it.toEntity() })
+            db.deletionDao().forget(EntityType.TASK.name, listOf(task.id))
         }
         effects.onTasksChanged(listOf(task))
+    }
+
+    /** Deletes several tasks at once (e.g. undoing an applied plan template). */
+    suspend fun deleteMany(ids: List<String>) {
+        if (ids.isEmpty()) return
+        val now = clock.now().toEpochMilli()
+        db.withTransaction {
+            ids.forEach { id ->
+                taskDao.delete(id)
+                db.logDeletion(EntityType.TASK, id, now)
+            }
+        }
+        effects.onTasksChanged(emptyList(), ids)
     }
 
     suspend fun moveToDate(task: Task, date: LocalDate?) {
@@ -513,7 +527,7 @@ class CategoryRepository(private val db: YadinoDatabase, private val clock: AppC
 /** Record counts shown in Settings › Data. */
 data class DataStats(
     val tasks: Int, val notes: Int, val goals: Int, val habits: Int, val habitLogs: Int,
-    val categories: Int, val completions: Int, val databaseBytes: Long,
+    val categories: Int, val completions: Int, val templates: Int, val databaseBytes: Long,
 )
 
 /** Whole-database operations: backup snapshot, atomic restore, statistics and resets. */
@@ -534,6 +548,8 @@ class DataRepository(
             milestones = db.milestoneDao().getAll().map { it.toDomain() },
             habits = db.habitDao().getAll().map { it.toDomain() },
             habitLogs = db.habitLogDao().getAll().map { it.toDomain() },
+            templates = db.templateDao().getTemplates().map { it.toDomain() },
+            templateItems = db.templateDao().getItems().map { it.toDomain() },
             settings = settings,
             dashboard = dashboard,
         )
@@ -552,11 +568,14 @@ class DataRepository(
             db.milestoneDao().upsertAll(data.milestones.map { it.toEntity() })
             db.habitDao().insertAll(data.habits.map { it.toEntity() })
             db.habitLogDao().insertAll(data.habitLogs.map { it.toEntity() })
+            db.templateDao().insertTemplates(data.templates.map { it.toEntity() })
+            db.templateDao().insertItems(data.templateItems.map { it.toEntity() })
         }
         effects.onEverythingChanged()
     }
 
     private suspend fun clearTables() {
+        db.templateDao().deleteAll() // items are removed by the cascade
         db.habitLogDao().deleteAll()
         db.habitDao().deleteAll()
         db.milestoneDao().deleteAll()
@@ -592,7 +611,7 @@ class DataRepository(
     suspend fun stats(): DataStats = DataStats(
         tasks = db.taskDao().count(), notes = db.noteDao().count(), goals = db.goalDao().count(),
         habits = db.habitDao().count(), habitLogs = db.habitLogDao().count(), categories = db.categoryDao().count(),
-        completions = db.completionDao().count(),
+        completions = db.completionDao().count(), templates = db.templateDao().count(),
         databaseBytes = databaseFile().let { f ->
             listOf(f, java.io.File(f.path + "-wal"), java.io.File(f.path + "-shm")).filter { it.exists() }.sumOf { it.length() }
         },

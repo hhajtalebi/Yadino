@@ -202,6 +202,52 @@ data class HabitLogEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
 
+/** A reusable day or week plan (database version 2). */
+@Entity(tableName = "plan_templates")
+data class PlanTemplateEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val description: String,
+    @ColumnInfo(name = "span_days") val spanDays: Int,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+)
+
+/**
+ * An item of a plan template. Days are offsets from the first day the template is applied
+ * to; subtask titles are stored one per line.
+ */
+@Entity(
+    tableName = "template_items",
+    indices = [Index("template_id"), Index("category_id"), Index("goal_id")],
+    foreignKeys = [
+        ForeignKey(entity = PlanTemplateEntity::class, parentColumns = ["id"], childColumns = ["template_id"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = CategoryEntity::class, parentColumns = ["id"], childColumns = ["category_id"], onDelete = ForeignKey.SET_NULL),
+        ForeignKey(entity = GoalEntity::class, parentColumns = ["id"], childColumns = ["goal_id"], onDelete = ForeignKey.SET_NULL),
+    ],
+)
+data class TemplateItemEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "template_id") val templateId: String,
+    val title: String,
+    val description: String,
+    val kind: String,
+    val priority: Int,
+    @ColumnInfo(name = "category_id") val categoryId: String?,
+    val tags: String,
+    @ColumnInfo(name = "day_offset") val dayOffset: Int?,
+    @ColumnInfo(name = "start_minute") val startMinute: Int?,
+    @ColumnInfo(name = "end_minute") val endMinute: Int?,
+    @ColumnInfo(name = "due_offset") val dueOffset: Int?,
+    @ColumnInfo(name = "due_minute") val dueMinute: Int?,
+    @ColumnInfo(name = "reminder_offset") val reminderOffset: Int?,
+    @ColumnInfo(name = "goal_id") val goalId: String?,
+    val subtasks: String,
+    @ColumnInfo(name = "sort_order") val sortOrder: Int,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+)
+
 /** Unsaved note editor content, used to recover drafts after an unexpected shutdown. */
 @Entity(tableName = "note_drafts")
 data class NoteDraftEntity(

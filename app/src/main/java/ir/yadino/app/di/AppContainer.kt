@@ -16,6 +16,7 @@ import ir.yadino.app.data.repository.GoalRepository
 import ir.yadino.app.data.repository.HabitRepository
 import ir.yadino.app.data.repository.NoteRepository
 import ir.yadino.app.data.repository.TaskRepository
+import ir.yadino.app.data.repository.TemplateRepository
 import ir.yadino.app.data.settings.AppStateStore
 import ir.yadino.app.data.settings.SettingsRepository
 import ir.yadino.app.data.settings.WidgetConfigStore
@@ -86,6 +87,7 @@ class AppContainer(val app: Application, val appScope: CoroutineScope) {
     val goals by lazy { GoalRepository(database, clock, effects) }
     val habits by lazy { HabitRepository(database, clock, effects) }
     val categories by lazy { CategoryRepository(database, clock) }
+    val templates by lazy { TemplateRepository(database, clock, { settings.awaitLoaded().firstDayOfWeek }, effects) }
     val data by lazy { DataRepository(database, { app.getDatabasePath(YadinoDatabase.NAME) }, clock, effects) }
     val backupPasswords = BackupPasswordStore(tokenStore, appState)
     val backup by lazy { BackupManager(app, data, settings, appState, clock, drive, backupPasswords) }

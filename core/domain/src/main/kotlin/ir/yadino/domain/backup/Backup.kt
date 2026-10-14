@@ -16,12 +16,14 @@ import ir.yadino.domain.model.HabitSchedule
 import ir.yadino.domain.model.Milestone
 import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteColor
+import ir.yadino.domain.model.PlanTemplate
 import ir.yadino.domain.model.Priority
 import ir.yadino.domain.model.Subtask
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.model.TaskCompletion
 import ir.yadino.domain.model.TaskKind
 import ir.yadino.domain.model.TaskStatus
+import ir.yadino.domain.model.TemplateItem
 import ir.yadino.domain.recurrence.RecurrenceRule
 import java.security.MessageDigest
 import java.time.DayOfWeek
@@ -40,24 +42,29 @@ data class BackupData(
     val milestones: List<Milestone> = emptyList(),
     val habits: List<Habit> = emptyList(),
     val habitLogs: List<HabitLog> = emptyList(),
+    /** Plan templates (format version 2 and later). */
+    val templates: List<PlanTemplate> = emptyList(),
+    val templateItems: List<TemplateItem> = emptyList(),
     /** Essential settings ([ir.yadino.domain.settings.SettingsCodec] representation). */
     val settings: Map<String, String> = emptyMap(),
     val dashboard: String? = null,
 ) {
     val totalRecords: Int
         get() = categories.size + tasks.size + subtasks.size + completions.size + notes.size + goals.size +
-            milestones.size + habits.size + habitLogs.size
+            milestones.size + habits.size + habitLogs.size + templates.size + templateItems.size
 
     fun counts(): BackupCounts = BackupCounts(
         tasks = tasks.size, subtasks = subtasks.size, notes = notes.size, goals = goals.size,
         milestones = milestones.size, habits = habits.size, habitLogs = habitLogs.size,
         categories = categories.size, completions = completions.size,
+        templates = templates.size, templateItems = templateItems.size,
     )
 }
 
 data class BackupCounts(
     val tasks: Int, val subtasks: Int, val notes: Int, val goals: Int, val milestones: Int,
     val habits: Int, val habitLogs: Int, val categories: Int, val completions: Int,
+    val templates: Int = 0, val templateItems: Int = 0,
 )
 
 /** Metadata stored next to the data. */
@@ -96,17 +103,25 @@ sealed interface BackupReadResult {
  * Versioned JSON backup format.
  *
  * ```
- * { "format": "yadino-backup", "formatVersion": 1, "appVersion": "1.0.0",
+ * { "format": "yadino-backup", "formatVersion": 2, "appVersion": "1.3.0",
  *   "createdAt": "2026-10-14T08:00:00Z", "counts": {…}, "checksum": "<sha256 of data>",
  *   "data": { "categories": […], "tasks": […], … } }
  * ```
  * Dates are ISO-8601 (`2026-10-14`), times `HH:mm`, instants ISO-8601 UTC. The checksum
  * is the SHA-256 of the compact serialisation of `data`, so any modification or
  * truncation of the file is detected before restoring.
+ *
+ * Version history: 1 (app 1.0–1.2) — tasks, notes, goals, habits, categories and settings;
+ * 2 (app 1.3) — adds `templates` and `templateItems`. Older files are read as they are (their
+ * missing sections are empty); files of a newer version are refused instead of being
+ * restored partially.
  */
 object BackupCodec {
     const val FORMAT = "yadino-backup"
-    const val FORMAT_VERSION = 1
+    const val FORMAT_VERSION = 2
+
+    /** First format version that contains plan templates. */
+    const val TEMPLATES_SINCE = 2
     const val FILE_EXTENSION = "yadino.json"
 
     fun encode(data: BackupData, appVersion: String, createdAt: Instant, pretty: Boolean = false): String {
@@ -122,6 +137,7 @@ object BackupCodec {
                 "tasks" to c.tasks, "subtasks" to c.subtasks, "notes" to c.notes, "goals" to c.goals,
                 "milestones" to c.milestones, "habits" to c.habits, "habitLogs" to c.habitLogs,
                 "categories" to c.categories, "completions" to c.completions,
+                "templates" to c.templates, "templateItems" to c.templateItems,
             )),
             "checksum" to JsonString(checksum),
             "data" to dataJson,
@@ -227,6 +243,18 @@ object BackupCodec {
         "habitLogs" to data.habitLogs.map { l ->
             linkedMapOf("id" to l.id, "habitId" to l.habitId, "date" to d(l.date), "count" to l.count, "updatedAt" to i(l.updatedAt))
         },
+        "templates" to data.templates.map { p ->
+            linkedMapOf("id" to p.id, "name" to p.name, "description" to p.description, "spanDays" to p.spanDays,
+                "createdAt" to i(p.createdAt), "updatedAt" to i(p.updatedAt))
+        },
+        "templateItems" to data.templateItems.map { x ->
+            linkedMapOf("id" to x.id, "templateId" to x.templateId, "title" to x.title, "description" to x.description,
+                "kind" to x.kind.name, "priority" to x.priority.level, "categoryId" to x.categoryId, "tags" to x.tags,
+                "dayOffset" to x.dayOffset, "startTime" to t(x.startTime), "endTime" to t(x.endTime),
+                "dueOffset" to x.dueOffset, "dueTime" to t(x.dueTime), "reminderOffset" to x.reminderOffsetMinutes,
+                "goalId" to x.goalId, "subtasks" to x.subtasks, "sortOrder" to x.sortOrder,
+                "createdAt" to i(x.createdAt), "updatedAt" to i(x.updatedAt))
+        },
         "settings" to data.settings.toSortedMap(),
         "dashboard" to data.dashboard,
     )) as JsonObject
@@ -304,6 +332,21 @@ object BackupCodec {
         habitLogs = list(o, "habitLogs").map { l ->
             HabitLog(l.req("id"), l.req("habitId"), l.date("date") ?: throw IllegalArgumentException("date"),
                 l.int("count") ?: 0, l.reqInstant("updatedAt"))
+        },
+        templates = list(o, "templates").map { p ->
+            PlanTemplate(p.req("id"), p.req("name"), p.string("description") ?: "", p.int("spanDays") ?: PlanTemplate.DAY,
+                p.reqInstant("createdAt"), p.reqInstant("updatedAt"))
+        },
+        templateItems = list(o, "templateItems").map { x ->
+            TemplateItem(
+                id = x.req("id"), templateId = x.req("templateId"), title = x.req("title"), description = x.string("description") ?: "",
+                kind = x.enum("kind", TaskKind.TASK), priority = Priority.fromLevel(x.int("priority") ?: 1),
+                categoryId = x.string("categoryId"), tags = x.strings("tags"),
+                dayOffset = x.int("dayOffset"), startTime = x.time("startTime"), endTime = x.time("endTime"),
+                dueOffset = x.int("dueOffset"), dueTime = x.time("dueTime"), reminderOffsetMinutes = x.int("reminderOffset"),
+                goalId = x.string("goalId"), subtasks = x.strings("subtasks"), sortOrder = x.int("sortOrder") ?: 0,
+                createdAt = x.reqInstant("createdAt"), updatedAt = x.reqInstant("updatedAt"),
+            )
         },
         settings = (o.obj("settings")?.members ?: emptyMap<String, JsonValue>())
             .mapNotNull { (k, v) -> (v as? JsonString)?.let { k to it.value } }.toMap(),

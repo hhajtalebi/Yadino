@@ -1,7 +1,6 @@
 package ir.yadino.app.ui.settings
 
 import android.Manifest
-import android.app.AlarmManager
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
@@ -13,7 +12,6 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,8 +25,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.BugReport
@@ -47,8 +46,8 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -113,7 +112,6 @@ import ir.yadino.app.widget.QuickNoteWidgetProvider
 import ir.yadino.app.widget.TasksWidgetProvider
 import ir.yadino.app.widget.TodayWidgetProvider
 import ir.yadino.app.widget.WidgetConfigActivity
-import ir.yadino.app.widget.WidgetUpdater
 import ir.yadino.calendar.CalendarFormatter
 import ir.yadino.calendar.DateFormatStyle
 import ir.yadino.calendar.JalaliDate
@@ -283,6 +281,7 @@ fun SettingsCalendarScreen() {
     val vm = settingsVm()
     val s by vm.settings.collectAsStateWithLifecycle()
     val fmt = LocalFormatter.current
+    val nav = LocalNavigator.current
     SettingsPage(stringResource(R.string.settings_calendar)) {
         SettingsGroup(stringResource(R.string.group_calendar_view)) {
             ChoiceSetting(stringResource(R.string.default_view), stringResource(R.string.default_view_desc), s.defaultCalendarView, CalendarView.entries, {
@@ -336,6 +335,9 @@ fun SettingsCalendarScreen() {
                     OverdueBehavior.MOVE_TO_TODAY -> R.string.overdue_move
                 })
             }) { v -> vm.update { it.copy(overdueBehavior = v) } }
+        }
+        SettingsGroup(stringResource(R.string.group_planning_tools)) {
+            SettingRow(stringResource(R.string.templates_title), stringResource(R.string.templates_desc), Icons.Default.ViewAgenda, onClick = { nav.navigate(Route.Templates) })
         }
     }
 }
@@ -744,12 +746,3 @@ fun AboutScreen() {
         HorizontalDivider()
     }
 }
-
-@Suppress("unused")
-private val unusedPalette = Icons.Default.Palette
-
-@Suppress("unused")
-private fun unusedAlarm(context: Context) = context.getSystemService(AlarmManager::class.java)
-
-@Suppress("unused")
-private val unusedWidgetUpdater = WidgetUpdater::class

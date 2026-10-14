@@ -42,6 +42,9 @@ sealed interface Route {
     data object Categories : Route
     data object DashboardCustomize : Route
     data object About : Route
+    data object Templates : Route
+
+    data class TemplateEditor(val templateId: String? = null) : Route
 
     fun encode(): String {
         val b = Uri.Builder().scheme("yadino")
@@ -70,6 +73,8 @@ sealed interface Route {
             Categories -> b.authority("categories")
             DashboardCustomize -> b.authority("dashboard-customize")
             About -> b.authority("about")
+            Templates -> b.authority("templates")
+            is TemplateEditor -> b.authority("template").q("id", templateId)
         }
         return b.build().toString()
     }
@@ -108,6 +113,8 @@ sealed interface Route {
                 "categories" -> Categories
                 "dashboard-customize" -> DashboardCustomize
                 "about" -> About
+                "templates" -> Templates
+                "template" -> TemplateEditor(p("id"))
                 else -> null
             }
         }

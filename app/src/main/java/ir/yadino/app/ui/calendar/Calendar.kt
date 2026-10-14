@@ -31,10 +31,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -42,6 +47,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -71,6 +77,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ir.yadino.app.R
+import ir.yadino.app.data.repository.ValidationException
 import ir.yadino.app.di.AppContainer
 import ir.yadino.app.ui.LocalContainer
 import ir.yadino.app.ui.common.CollectMessages
@@ -78,12 +85,16 @@ import ir.yadino.app.ui.common.TaskRow
 import ir.yadino.app.ui.common.UiMessage
 import ir.yadino.app.ui.common.YadinoViewModel
 import ir.yadino.app.ui.common.todayFlow
+import ir.yadino.app.ui.common.validationText
 import ir.yadino.app.ui.components.JalaliDatePickerDialog
 import ir.yadino.app.ui.components.MonthYearPickerDialog
 import ir.yadino.app.ui.components.YadinoScaffold
 import ir.yadino.app.ui.components.YadinoTopBar
 import ir.yadino.app.ui.navigation.LocalNavigator
 import ir.yadino.app.ui.navigation.Route
+import ir.yadino.app.ui.templates.ApplyTemplateDialog
+import ir.yadino.app.ui.templates.TemplatePickerDialog
+import ir.yadino.app.ui.templates.appliedMessage
 import ir.yadino.app.ui.theme.HolidayRed
 import ir.yadino.app.ui.theme.HolidayRedDark
 import ir.yadino.app.ui.theme.LocalAppSettings
@@ -95,12 +106,14 @@ import ir.yadino.calendar.IranianOccasions
 import ir.yadino.calendar.JalaliDate
 import ir.yadino.calendar.PersianNames
 import ir.yadino.calendar.WeekMath
-import ir.yadino.domain.model.Category
 import ir.yadino.domain.model.CalendarView
+import ir.yadino.domain.model.Category
 import ir.yadino.domain.model.Goal
+import ir.yadino.domain.model.PlanTemplate
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.planning.PlannedItem
 import ir.yadino.domain.planning.TaskFilters
+import ir.yadino.domain.validation.ValidationError
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -132,7 +145,47 @@ class CalendarViewModel(c: AppContainer, initialDate: LocalDate?) : YadinoViewMo
 
     fun copyPlan(from: LocalDate, to: LocalDate, target: LocalDate) = launchSafe {
         val n = c.tasks.copyPlan(from, to, target)
-        message(UiMessage.Text(if (n == 0) R.string.msg_nothing_to_copy else R.string.msg_copied_count, listOf(n.toString())))
+        message(UiMessage.Text(if (n == 0) R.string.msg_nothing_to_copy else R.string.msg_copied_count, listOf(formatNumber(n))))
+    }
+
+    val templates: StateFlow<List<PlanTemplate>> = c.templates.templates.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun applyTemplate(template: PlanTemplate, date: LocalDate, skipDuplicates: Boolean) = launchSafe {
+        val result = c.templates.apply(template, date, skipDuplicates)
+        message(appliedMessage(template, result, ::formatNumber) { ids -> launchSafe { c.tasks.deleteMany(ids) } })
+    }
+
+    /** State of the "save plan as template" dialog. */
+    data class TemplateSave(val week: Boolean, val start: LocalDate, val count: Int? = null, val errors: List<ValidationError> = emptyList())
+
+    val templateSave = MutableStateFlow<TemplateSave?>(null)
+
+    fun startTemplateSave(week: Boolean, start: LocalDate) {
+        val request = TemplateSave(week, start)
+        templateSave.value = request
+        launchSafe(onError = { templateSave.value = null }) {
+            val n = c.templates.planSize(start, if (week) PlanTemplate.WEEK else PlanTemplate.DAY)
+            if (templateSave.value != request) return@launchSafe
+            if (n == 0) {
+                templateSave.value = null
+                message(UiMessage.Text(R.string.msg_plan_empty_for_template))
+            } else {
+                templateSave.value = request.copy(count = n)
+            }
+        }
+    }
+
+    fun saveTemplate(name: String) {
+        val request = templateSave.value ?: return
+        launchSafe(onError = { e -> if (e is ValidationException) templateSave.value = request.copy(errors = e.errors) }) {
+            val saved = c.templates.saveFromPlan(request.start, if (request.week) PlanTemplate.WEEK else PlanTemplate.DAY, name)
+            templateSave.value = null
+            message(UiMessage.Text(if (saved == null) R.string.msg_plan_empty_for_template else R.string.msg_template_saved, listOfNotNull(saved?.name)))
+        }
+    }
+
+    fun cancelTemplateSave() {
+        templateSave.value = null
     }
 }
 
@@ -151,6 +204,10 @@ fun CalendarScreen(route: Route.Calendar) {
     var monthPicker by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     var copyMode by rememberSaveable { mutableStateOf<String?>(null) }
+    var templatePicker by remember { mutableStateOf(false) }
+    var applyTemplate by remember { mutableStateOf<PlanTemplate?>(null) }
+    val templates by vm.templates.collectAsStateWithLifecycle()
+    val templateSave by vm.templateSave.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     val baseMonth = remember { JalaliDate.from(data.today).monthIndex }
@@ -190,6 +247,15 @@ fun CalendarScreen(route: Route.Calendar) {
                             onClick = { menu = false; copyMode = "day" })
                         DropdownMenuItem(text = { Text(stringResource(R.string.copy_week_plan)) }, leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
                             onClick = { menu = false; copyMode = "week" })
+                        HorizontalDivider()
+                        DropdownMenuItem(text = { Text(stringResource(R.string.calendar_apply_template)) }, leadingIcon = { Icon(Icons.Default.PostAdd, null) },
+                            onClick = { menu = false; templatePicker = true })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.calendar_save_day_template)) }, leadingIcon = { Icon(Icons.Default.LibraryAdd, null) },
+                            onClick = { menu = false; vm.startTemplateSave(false, selected) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.calendar_save_week_template)) }, leadingIcon = { Icon(Icons.Default.LibraryAdd, null) },
+                            onClick = { menu = false; vm.startTemplateSave(true, WeekMath.startOfWeek(selJ, settings.firstDayOfWeek).toLocalDate()) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.templates_title)) }, leadingIcon = { Icon(Icons.Default.ViewAgenda, null) },
+                            onClick = { menu = false; nav.navigate(Route.Templates) })
                     }
                 }
             }
@@ -243,6 +309,53 @@ fun CalendarScreen(route: Route.Calendar) {
             title = stringResource(if (mode == "day") R.string.copy_day_target else R.string.copy_week_target),
         )
     }
+    if (templatePicker) {
+        TemplatePickerDialog(templates, onPick = { applyTemplate = it }, onManage = { nav.navigate(Route.Templates) }, onDismiss = { templatePicker = false })
+    }
+    applyTemplate?.let { t ->
+        ApplyTemplateDialog(t, selected, onDismiss = { applyTemplate = null }, onApply = { date, skip ->
+            vm.applyTemplate(t, date, skip)
+            if (date != selected) goTo(date)
+        })
+    }
+    templateSave?.let { request -> SaveTemplateDialog(request, onSave = vm::saveTemplate, onDismiss = vm::cancelTemplateSave) }
+}
+
+/** Name dialog for saving the plan of a day or a week as a template. */
+@Composable
+private fun SaveTemplateDialog(request: CalendarViewModel.TemplateSave, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+    val fmt = LocalFormatter.current
+    val defaultName = if (request.week) stringResource(R.string.save_template_default_week)
+    else stringResource(R.string.save_template_default_day, PersianNames.weekday(request.start.dayOfWeek))
+    var name by rememberSaveable(request.start, request.week) { mutableStateOf(defaultName) }
+    val nameError = request.errors.firstOrNull()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (request.week) R.string.calendar_save_week_template else R.string.calendar_save_day_template)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                val count = request.count
+                if (count == null) {
+                    CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+                } else {
+                    Text(
+                        if (request.week) stringResource(R.string.save_template_count_week, fmt.number(count), fmt.date(request.start), fmt.date(request.start.plusDays(6)))
+                        else stringResource(R.string.save_template_count_day, fmt.number(count), fmt.weekday(request.start) + " " + fmt.date(request.start)),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                OutlinedTextField(
+                    value = name, onValueChange = { name = it }, singleLine = true,
+                    label = { Text(stringResource(R.string.template_name)) },
+                    isError = nameError != null,
+                    supportingText = if (nameError != null) { { Text(validationText(nameError)) } } else null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(name) }, enabled = request.count != null && name.isNotBlank()) { Text(stringResource(R.string.save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 @Composable

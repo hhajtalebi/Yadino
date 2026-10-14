@@ -13,10 +13,12 @@ import ir.yadino.app.data.local.entity.HabitLogEntity
 import ir.yadino.app.data.local.entity.MilestoneEntity
 import ir.yadino.app.data.local.entity.NoteDraftEntity
 import ir.yadino.app.data.local.entity.NoteEntity
+import ir.yadino.app.data.local.entity.PlanTemplateEntity
 import ir.yadino.app.data.local.entity.SubtaskCount
 import ir.yadino.app.data.local.entity.SubtaskEntity
 import ir.yadino.app.data.local.entity.TaskCompletionEntity
 import ir.yadino.app.data.local.entity.TaskEntity
+import ir.yadino.app.data.local.entity.TemplateItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -361,6 +363,55 @@ interface DeletionDao {
     @Query("DELETE FROM deletions WHERE deleted_at < :before")
     suspend fun prune(before: Long): Int
 
+    /** Drops tombstones of records that were restored (undo). */
+    @Query("DELETE FROM deletions WHERE entity_type = :type AND entity_id IN (:ids)")
+    suspend fun forget(type: String, ids: List<String>)
+
     @Query("DELETE FROM deletions")
     suspend fun deleteAll()
+}
+
+@Dao
+interface TemplateDao {
+    @Query("SELECT * FROM plan_templates ORDER BY name COLLATE NOCASE, created_at")
+    fun observeTemplates(): Flow<List<PlanTemplateEntity>>
+
+    @Query("SELECT * FROM template_items ORDER BY template_id, sort_order, created_at")
+    fun observeItems(): Flow<List<TemplateItemEntity>>
+
+    @Query("SELECT * FROM plan_templates")
+    suspend fun getTemplates(): List<PlanTemplateEntity>
+
+    @Query("SELECT * FROM template_items")
+    suspend fun getItems(): List<TemplateItemEntity>
+
+    @Query("SELECT * FROM plan_templates WHERE id = :id")
+    suspend fun getTemplate(id: String): PlanTemplateEntity?
+
+    @Query("SELECT * FROM template_items WHERE template_id = :templateId ORDER BY sort_order, created_at")
+    suspend fun getItemsOf(templateId: String): List<TemplateItemEntity>
+
+    @Upsert
+    suspend fun upsertTemplate(template: PlanTemplateEntity)
+
+    @Upsert
+    suspend fun upsertItems(items: List<TemplateItemEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertTemplates(templates: List<PlanTemplateEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertItems(items: List<TemplateItemEntity>)
+
+    @Query("DELETE FROM template_items WHERE template_id = :templateId AND id NOT IN (:keep)")
+    suspend fun deleteItemsExcept(templateId: String, keep: List<String>)
+
+    @Query("DELETE FROM plan_templates WHERE id = :id")
+    suspend fun deleteTemplate(id: String)
+
+    @Query("DELETE FROM plan_templates")
+    suspend fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM plan_templates")
+    suspend fun count(): Int
 }

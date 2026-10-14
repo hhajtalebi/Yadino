@@ -73,6 +73,8 @@ import ir.yadino.app.ui.settings.SettingsScreen
 import ir.yadino.app.ui.settings.SettingsWidgetsScreen
 import ir.yadino.app.ui.tasks.TaskEditorScreen
 import ir.yadino.app.ui.tasks.TasksScreen
+import ir.yadino.app.ui.templates.TemplateEditorScreen
+import ir.yadino.app.ui.templates.TemplatesScreen
 
 val LocalContainer = staticCompositionLocalOf<AppContainer> { error("container not provided") }
 val LocalSnackbar = staticCompositionLocalOf { SnackbarHostState() }
@@ -165,5 +167,7 @@ private fun Screen(route: Route) {
         Route.Categories -> CategoriesScreen()
         Route.DashboardCustomize -> DashboardCustomizeScreen()
         Route.About -> AboutScreen()
+        Route.Templates -> TemplatesScreen()
+        is Route.TemplateEditor -> TemplateEditorScreen(route)
     }
 }
