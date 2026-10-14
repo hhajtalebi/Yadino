@@ -1,12 +1,14 @@
 package ir.yadino.app
 
 import android.app.Application
+import android.os.Build
 import android.util.Log
 import androidx.work.Configuration
+import ir.yadino.app.core.AppVisibility
 import ir.yadino.app.core.ErrorReporter
 import ir.yadino.app.di.AppContainer
-import ir.yadino.app.work.WorkScheduler
 import ir.yadino.app.notifications.NotificationHelper
+import ir.yadino.app.work.WorkScheduler
 import ir.yadino.domain.model.AppSettings
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.io.File
 
 class YadinoApplication : Application(), Configuration.Provider {
 
@@ -33,7 +36,10 @@ class YadinoApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // The crash report screen runs in its own process and needs none of the app's services.
+        if (isCrashReportProcess()) return
         ErrorReporter.install(this)
+        registerActivityLifecycleCallbacks(AppVisibility)
         container = AppContainer(this, appScope)
         NotificationHelper.createChannels(this)
 
@@ -43,6 +49,16 @@ class YadinoApplication : Application(), Configuration.Provider {
         }
         container.syncBackgroundWork()
         observeSettings()
+        AppVisibility.applicationReady = true
+    }
+
+    private fun isCrashReportProcess(): Boolean {
+        val name = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            runCatching { File("/proc/self/cmdline").readText().substringBefore('\u0000').trim() }.getOrNull()
+        }
+        return name?.endsWith(CRASH_PROCESS_SUFFIX) == true
     }
 
     /** Applies settings that have process-wide effects as soon as they change. */
@@ -74,4 +90,9 @@ class YadinoApplication : Application(), Configuration.Provider {
         s.numerals, s.firstDayOfWeek, s.use24Hour, s.dateFormat, s.showGregorian, s.occasionDisplay, s.lunarAdjustment,
         s.timeZoneId, s.overdueBehavior, s.showFutureOccurrences,
     )
+
+    private companion object {
+        /** Must match `android:process` of CrashReportActivity in the manifest. */
+        const val CRASH_PROCESS_SUFFIX = ":crash"
+    }
 }

@@ -38,4 +38,11 @@ python3 build.py lint                  # Android Lint (cmdline-tools) -> build/o
 YADINO_KEYSTORE=… YADINO_KEYSTORE_PASSWORD=… python3 build.py release
 ```
 
-`debug.keystore` is the standard Android debug key (password `android`).
+`debug.keystore` is the repository's public signing key (password `android`, alias
+`androiddebugkey`). Since 1.3.1 it signs both APKs in `release/`, so every test build installs
+over the previous one; use your own private key for public releases (see `docs/BUILD.md`):
+
+```bash
+YADINO_KEYSTORE=tools/offline-build/debug.keystore YADINO_KEYSTORE_PASSWORD=android \
+YADINO_KEY_ALIAS=androiddebugkey python3 tools/offline-build/build.py release
+```

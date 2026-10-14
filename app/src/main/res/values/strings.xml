@@ -146,6 +146,17 @@
     <string name="copy_day_target">برنامه به کدام روز کپی شود؟</string>
     <string name="copy_week_plan">کپی برنامه این هفته</string>
     <string name="copy_week_target">هفته مقصد را انتخاب کنید</string>
+    <string name="crash_close">بستن</string>
+    <string name="crash_copied">گزارش کپی شد</string>
+    <string name="crash_copy">کپی گزارش</string>
+    <string name="crash_message">متأسفیم؛ برنامه به‌طور ناگهانی متوقف شد. اطلاعاتی که پیش از این ذخیره شده بود دست نخورده است. اگر گزارش زیر را برای توسعه‌دهنده بفرستید، علت خطا زودتر پیدا و رفع می‌شود.</string>
+    <string name="crash_no_details">جزئیات خطا در دسترس نیست.</string>
+    <string name="crash_privacy">این گزارش فقط نسخه برنامه و اندروید، مدل گوشی و محل خطا در کد را دارد؛ هیچ متنی از کارها، یادداشت‌ها یا اطلاعات شخصی شما در آن نیست.</string>
+    <string name="crash_report_label">گزارش خطا</string>
+    <string name="crash_restart">باز کردن دوباره یادینو</string>
+    <string name="crash_share">ارسال گزارش</string>
+    <string name="crash_share_subject">گزارش خطای یادینو</string>
+    <string name="crash_title">یادینو با خطا متوقف شد</string>
     <string name="current_streak">زنجیره فعلی</string>
     <string name="custom">دلخواه…</string>
     <string name="custom_reminder">یادآوری دلخواه</string>

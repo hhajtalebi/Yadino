@@ -67,6 +67,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Crash report screen: its own small process, so it also works when the app crashed
+             while starting (YadinoApplication skips initialisation there). -->
+        <activity
+            android:name=".core.CrashReportActivity"
+            android:exported="false"
+            android:label="@string/crash_title"
+            android:process=":crash" />
+
         <activity
             android:name=".widget.WidgetItemActivity"
             android:excludeFromRecents="true"

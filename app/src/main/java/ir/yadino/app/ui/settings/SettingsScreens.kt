@@ -20,10 +20,13 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
@@ -644,7 +647,8 @@ fun SettingsAdvancedScreen() {
             title = { Text(stringResource(R.string.error_log_view)) },
             text = {
                 val text = remember { ErrorReporter.entries(context).take(5).joinToString("\n\n") { it.readText() }.ifBlank { context.getString(R.string.error_log_empty) } }
-                Text(text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(4.dp))
+                Text(text, style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()).padding(4.dp))
             },
             confirmButton = { TextButton(onClick = { showLog = false }) { Text(stringResource(R.string.close)) } },
         )

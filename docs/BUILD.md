@@ -83,9 +83,35 @@ keytool -genkeypair -v -keystore yadino-release.jks -storetype PKCS12 \
 
 سپس مسیر و رمز را در `local.properties` بنویسید و `./gradlew :app:assembleRelease` (یا `bundleRelease` برای Google Play) را اجرا کنید. نسخه انتشار با R8 کوچک‌سازی و مبهم‌سازی می‌شود؛ قواعد لازم در `app/proguard-rules.pro` و قواعد کتابخانه‌ها آمده است.
 
-> فایل `release/yadino-1.3.0-release.apk` موجود در مخزن با کلیدی امضا شده است که در محیط ساخت تولید شد. کلید نسخه‌های ۱٫۰ تا ۱٫۲ در آن محیط نگه‌داری نشد، به همین دلیل نسخه ۱٫۳٫۰ با کلید تازه‌ای امضا شده و روی نسخه‌های انتشار قبلی به‌صورت به‌روزرسانی نصب نمی‌شود (راهنمای انتقال داده در [CHANGELOG.md](../CHANGELOG.md)).
->
-> برای انتشار عمومی، یک بار کلید خودتان را بسازید، آن را همراه رمزش در جای امنی بیرون از مخزن نگه دارید و همه نسخه‌های بعدی را با همان کلید امضا کنید. در CI می‌توانید کلید را به‌صورت Base64 در GitHub Secrets بگذارید و با متغیرهای `YADINO_KEYSTORE*` به ساخت بدهید (نمونه در [docs/ci/README.md](ci/README.md)).
+### APK‌های پوشه `release/` (نسخه‌های آزمایشی)
+
+از نسخه ۱٫۳٫۱، هر دو APK موجود در `release/` (انتشار و اشکال‌زدایی) با **کلید عمومی مخزن** امضا می‌شوند: `tools/offline-build/debug.keystore` (رمز `android`، نام مستعار `androiddebugkey`، اثر انگشت SHA-256 گواهی `d8f45427…56fb6e`).
+
+- **چرا؟** کلید خصوصی‌ای که فقط در محیط ساخت نگه‌داری شود، با بازسازی آن محیط از دست می‌رود؛ این اتفاق برای نسخه‌های ۱٫۰ تا ۱٫۲ افتاد و نسخه ۱٫۳٫۰ ناچار با کلید دیگری امضا شد. کلید ثبت‌شده در مخزن همیشه در دسترس است، پس هر نسخه آزمایشی تازه روی نسخه قبلی نصب می‌شود و اطلاعات آزمایش‌کننده حفظ می‌شود.
+- **محدودیت:** این کلید عمومی است و هر کسی می‌تواند با آن APK بسازد. پس فقط برای آزمایش مناسب است و آزمایش‌کننده باید فایل‌ها را فقط از صفحه دریافت یا همین مخزن بگیرد.
+- **ساخت با کلید مخزن:**
+
+```bash
+YADINO_KEYSTORE=tools/offline-build/debug.keystore YADINO_KEYSTORE_PASSWORD=android \
+YADINO_KEY_ALIAS=androiddebugkey python3 tools/offline-build/build.py release
+```
+
+### انتشار عمومی
+
+برای انتشار در فروشگاه‌ها (مثلاً کافه‌بازار، مایکت یا Google Play) یا انتشار عمومی، یک بار کلید خصوصی خودتان را بسازید (دستور بالا)، آن را همراه رمزش در جای امنی بیرون از مخزن نگه دارید و همه نسخه‌های بعدی را با همان کلید امضا کنید. در CI می‌توانید کلید را به‌صورت Base64 در GitHub Secrets بگذارید و با متغیرهای `YADINO_KEYSTORE*` به ساخت بدهید (نمونه در [docs/ci/README.md](ci/README.md)). برنامه‌ای که با کلید آزمایشی نصب شده، با کلید خصوصی شما به‌روزرسانی نمی‌شود؛ کاربران آزمایشی یک بار باید پشتیبان بگیرند، برنامه را حذف و دوباره نصب کنند و پشتیبان را بازیابی کنند.
+
+## صفحه دریافت (`index.html`)
+
+صفحه‌ای فارسی برای دانلود و نصب APK روی گوشی، همراه راهنمای نصب، کد QR، فهرست موارد قابل آزمون، راهنمای گزارش خطا و مشخصات فایل‌ها. این صفحه از روی `release/SHA256SUMS.txt`، شماره نسخه `tools/offline-build/build.py` و بخش «امکانات تازه» در `CHANGELOG.md` ساخته می‌شود:
+
+```bash
+pip install segno                                   # فقط برای کد QR (اختیاری)
+python3 tools/download-page/build_page.py           # ساخت index.html و .nojekyll در ریشه مخزن
+python3 tools/download-page/serve.py --port 8080    # پیش‌نمایش محلی (فقط صفحه، APKها و فونت‌ها)
+```
+
+- **انتشار با GitHub Pages**: در تنظیمات مخزن ← Pages، منبع را «Deploy from a branch»، شاخه‌ای که `index.html` در آن است و پوشه `/ (root)` بگذارید. نشانی صفحه `https://hhajtalebi.github.io/Yadino/` است و APKها از همان نشانی (`release/…`) دانلود می‌شوند. فایل `.nojekyll` باعث می‌شود فایل‌ها همان‌طور که هستند منتشر شوند.
+- پس از هر انتشار و به‌روز کردن `release/`، صفحه را دوباره بسازید.
 
 ## پایگاه داده و مهاجرت‌ها
 
@@ -117,7 +143,7 @@ python3 tools/offline-build/build.py apk         # APK اشکال‌زدایی
 python3 tools/offline-build/build.py androidtest # کامپایل آزمون‌های ابزاری
 python3 tools/offline-build/build.py linkcheck   # بررسی سازگاری باینری کتابخانه‌ها
 python3 tools/offline-build/build.py lint        # Android Lint (گزارش‌ها در build/offline/lint)
-YADINO_KEYSTORE=… YADINO_KEYSTORE_PASSWORD=… python3 tools/offline-build/build.py release
+YADINO_KEYSTORE=… YADINO_KEYSTORE_PASSWORD=… python3 tools/offline-build/build.py release   # کلید مخزن یا کلید خودتان (بخش امضا)
 ```
 
 این ابزار فقط برای محیط‌های محدود است؛ مسیر رسمی و پیشنهادی ساخت، Gradle و Android Studio است. تفاوت‌ها:
