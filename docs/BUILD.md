@@ -83,7 +83,7 @@ keytool -genkeypair -v -keystore yadino-release.jks -storetype PKCS12 \
 
 سپس مسیر و رمز را در `local.properties` بنویسید و `./gradlew :app:assembleRelease` (یا `bundleRelease` برای Google Play) را اجرا کنید. نسخه انتشار با R8 کوچک‌سازی و مبهم‌سازی می‌شود؛ قواعد لازم در `app/proguard-rules.pro` و قواعد کتابخانه‌ها آمده است.
 
-> فایل `release/yadino-1.1.0-release.apk` موجود در مخزن با کلیدی که در محیط ساخت این نسخه تولید شد امضا شده است. برای انتشار عمومی، با کلید خودتان دوباره بسازید.
+> فایل `release/yadino-1.2.0-release.apk` موجود در مخزن با کلیدی که در محیط ساخت این نسخه تولید شد امضا شده است. برای انتشار عمومی، با کلید خودتان دوباره بسازید.
 
 ## پایگاه داده و مهاجرت‌ها
 

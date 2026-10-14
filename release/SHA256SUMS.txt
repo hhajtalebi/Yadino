@@ -1,2 +1,2 @@
-b26479dc6a0b86eb28ad4464a794c0a19e1cbd96bd61efe7b32803683e783b72  yadino-1.1.0-debug.apk
-80a8f3c7d63153c57d9cb3f75463e12ec7d2dd1975d03ecd8eed46b53f3ff1d7  yadino-1.1.0-release.apk
+a4c577568d2a56d33c51ef31a1bece42b73bcd5f83a63a5bcffe6553ec6ef782  yadino-1.2.0-release.apk
+aff8c3cdf6043b41606e502265cf8b6606e9e12e94f7450cd534235ac366114f  yadino-1.2.0-debug.apk
