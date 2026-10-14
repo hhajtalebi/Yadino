@@ -14,11 +14,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -70,9 +70,9 @@ import ir.yadino.domain.model.Goal
 import ir.yadino.domain.model.Habit
 import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteFilters
-import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.model.Priority
 import ir.yadino.domain.model.Task
+import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.planning.TaskFilters
 import ir.yadino.domain.reports.PeriodReport
 import ir.yadino.domain.reports.ReportCalculator

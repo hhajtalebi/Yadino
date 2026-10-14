@@ -5,13 +5,13 @@ import java.time.LocalTime
 
 /** Predefined date display styles selectable in settings. */
 enum class DateFormatStyle(val pattern: String) {
-    /** سه‌شنبه ۲۲ مهر ۱۴۰۵ */
+    /** چهارشنبه ۲۲ مهر ۱۴۰۵ */
     FULL("EEEE d MMMM yyyy"),
 
     /** ۲۲ مهر ۱۴۰۵ */
     LONG("d MMMM yyyy"),
 
-    /** سه‌شنبه ۲۲ مهر */
+    /** چهارشنبه ۲۲ مهر */
     MEDIUM("EEEE d MMMM"),
 
     /** ۱۴۰۵/۰۷/۲۲ */

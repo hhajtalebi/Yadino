@@ -223,6 +223,8 @@ class WidgetUpdater(private val context: Context, private val scope: CoroutineSc
             QuickNoteWidgetProvider::class.java,
             GoalWidgetProvider::class.java,
             ClockWidgetProvider::class.java,
+            HabitsWidgetProvider::class.java,
+            CountdownWidgetProvider::class.java,
         )
     }
 }

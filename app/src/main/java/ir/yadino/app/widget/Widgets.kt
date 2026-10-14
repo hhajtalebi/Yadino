@@ -28,17 +28,15 @@ import ir.yadino.domain.goals.GoalProgressCalculator
 import ir.yadino.domain.model.AppSettings
 import ir.yadino.domain.model.GoalStatus
 import ir.yadino.domain.model.NoteFilters
-import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.model.OverdueBehavior
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.model.TaskKind
+import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.planning.TaskFilters
 import ir.yadino.domain.planning.TaskListFilter
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
 private fun AppSettings.isWeekend(date: LocalDate) = date.dayOfWeek == DayOfWeek.FRIDAY
 
@@ -448,9 +446,3 @@ class WidgetActionReceiver : BroadcastReceiver() {
 /** Ids of placed widgets of [cls] (used by the configuration screen). */
 fun widgetIds(context: Context, cls: Class<*>): IntArray =
     AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, cls))
-
-@Suppress("unused")
-private fun daysBetween(a: LocalDate, b: LocalDate) = ChronoUnit.DAYS.between(a, b)
-
-@Suppress("unused")
-private suspend fun <T> kotlinx.coroutines.flow.Flow<T>.firstValue(): T = first()

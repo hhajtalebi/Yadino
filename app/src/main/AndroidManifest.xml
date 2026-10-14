@@ -179,11 +179,37 @@
                 android:resource="@xml/appwidget_clock" />
         </receiver>
         <receiver
+            android:name=".widget.HabitsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_habits_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/appwidget_habits" />
+        </receiver>
+        <receiver
+            android:name=".widget.CountdownWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_countdown_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/appwidget_countdown" />
+        </receiver>
+        <receiver
             android:name=".widget.WidgetActionReceiver"
             android:exported="false" />
 
         <service
             android:name=".widget.TaskListWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+        <service
+            android:name=".widget.HabitListWidgetService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 

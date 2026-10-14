@@ -42,6 +42,15 @@ object HabitStats {
         }
     }
 
+    /**
+     * Habits to check in today (home-screen widget): scheduled and not archived; the ones not
+     * yet done first, then in the user's order.
+     */
+    fun dueToday(habits: List<Habit>, logs: List<HabitLog>, today: LocalDate, firstDayOfWeek: DayOfWeek): List<Pair<Habit, HabitSummary>> =
+        habits.filter { !it.isArchived && isScheduled(it, today) }
+            .map { it to summarize(it, logs, today, firstDayOfWeek) }
+            .sortedWith(compareBy<Pair<Habit, HabitSummary>> { it.second.isDoneToday }.thenBy { it.first.sortOrder }.thenBy { it.first.title })
+
     private fun completedOn(habit: Habit, counts: Map<LocalDate, Int>, date: LocalDate) =
         (counts[date] ?: 0) >= habit.targetPerDay
 

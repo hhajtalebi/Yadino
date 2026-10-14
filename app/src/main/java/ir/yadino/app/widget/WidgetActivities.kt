@@ -23,10 +23,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -43,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -56,11 +61,14 @@ import ir.yadino.app.ui.navigation.Route
 import ir.yadino.app.ui.theme.LocalFormatter
 import ir.yadino.app.ui.theme.YadinoTheme
 import ir.yadino.domain.model.AppSettings
-import ir.yadino.domain.model.GoalStatus
 import ir.yadino.domain.model.Goal
+import ir.yadino.domain.model.GoalStatus
 import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteFilters
+import ir.yadino.domain.planning.CountdownTarget
+import ir.yadino.domain.planning.Countdowns
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * Per-instance widget configuration: theme, background opacity, text size, accent colour
@@ -91,15 +99,26 @@ class WidgetConfigActivity : ComponentActivity() {
             var config by remember { mutableStateOf<WidgetConfig?>(null) }
             var notes by remember { mutableStateOf<List<Note>>(emptyList()) }
             var goals by remember { mutableStateOf<List<Goal>>(emptyList()) }
+            var countdowns by remember { mutableStateOf<List<CountdownTarget>>(emptyList()) }
+            val today = remember { c.clock.today() }
             LaunchedEffect(Unit) {
-                config = c.widgetConfigs.get(widgetId)
+                val cfg = c.widgetConfigs.get(widgetId)
+                config = cfg
                 notes = c.notes.getRecent(30).filter { !it.isArchived }
-                goals = c.goals.getAll().filter { !it.isArchived && it.status != GoalStatus.COMPLETED }
+                val allGoals = c.goals.getAll()
+                goals = allGoals.filter { !it.isArchived && it.status != GoalStatus.COMPLETED }
+                if (providerClass == CountdownWidgetProvider::class.java.name) {
+                    val allTasks = c.tasks.getAll()
+                    val upcoming = Countdowns.candidates(allGoals, allTasks, today).take(40)
+                    // Keep the current choice selectable even if it is finished or overdue.
+                    val current = cfg.content.takeIf { !Countdowns.isAutomatic(it) }?.let { Countdowns.resolve(it, allGoals, allTasks, today) }
+                    countdowns = if (current != null && upcoming.none { it.kind == current.kind && it.id == current.id }) listOf(current) + upcoming else upcoming
+                }
             }
             YadinoTheme(loaded ?: AppSettings()) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val cfg = config ?: return@Surface
-                    WidgetConfigContent(providerClass, cfg, notes, goals, onChange = { config = it }, onSave = {
+                    WidgetConfigContent(providerClass, cfg, notes, goals, countdowns, today, onChange = { config = it }, onSave = {
                         lifecycleScope.launch {
                             c.widgetConfigs.save(widgetId, cfg)
                             c.widgets.updateNow()
@@ -120,6 +139,8 @@ private fun WidgetConfigContent(
     cfg: WidgetConfig,
     notes: List<Note>,
     goals: List<Goal>,
+    countdowns: List<CountdownTarget>,
+    today: LocalDate,
     onChange: (WidgetConfig) -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
@@ -183,6 +204,26 @@ private fun WidgetConfigContent(
                     goals.forEach { g -> FilterChip(cfg.content == g.id, { onChange(cfg.copy(content = g.id)) }, { Text(g.title) }) }
                 }
             }
+            CountdownWidgetProvider::class.java.name -> {
+                Text(stringResource(R.string.widget_content_countdown), style = MaterialTheme.typography.titleSmall)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(Countdowns.isAutomatic(cfg.content), { onChange(cfg.copy(content = "")) }, { Text(stringResource(R.string.widget_countdown_nearest)) })
+                    countdowns.forEach { t ->
+                        val key = Countdowns.encode(t.kind, t.id)
+                        FilterChip(
+                            cfg.content == key, { onChange(cfg.copy(content = key)) },
+                            { Text(t.title + " • " + fmt.relativeDay(t.date, today), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            leadingIcon = {
+                                Icon(if (t.kind == CountdownTarget.Kind.GOAL) Icons.Default.Flag else Icons.Default.TaskAlt, null, Modifier.size(16.dp))
+                            },
+                        )
+                    }
+                }
+                if (countdowns.isEmpty()) {
+                    Text(stringResource(R.string.widget_countdown_no_candidates), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
         if (providerClass == CalendarWidgetProvider::class.java.name || providerClass == ClockWidgetProvider::class.java.name) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -205,35 +246,47 @@ private fun accentColor(key: String, dark: Boolean): Color = when (key) {
 }
 
 /**
- * Invisible trampoline for clicks on widget list items: toggles a task (persisted to the
- * database) or opens it in the app, then finishes immediately.
+ * Invisible trampoline for clicks on widget list items: toggles a task or checks in a habit
+ * (persisted to the database), or opens the item in the app, then finishes immediately.
  */
 class WidgetItemActivity : ComponentActivity() {
     companion object {
         const val EXTRA_KIND = "kind"
         const val EXTRA_TASK = "task"
+        const val EXTRA_HABIT = "habit"
         const val KIND_TOGGLE = "toggle"
         const val KIND_OPEN = "open"
+        const val KIND_HABIT_CHECK_IN = "habit_check_in"
+        const val KIND_HABIT_OPEN = "habit_open"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val taskId = intent?.getStringExtra(EXTRA_TASK)
+        val habitId = intent?.getStringExtra(EXTRA_HABIT)
         val kind = intent?.getStringExtra(EXTRA_KIND)
         val app = application as YadinoApplication
-        if (taskId != null) {
-            when (kind) {
-                KIND_TOGGLE -> app.appScope.launch {
-                    app.container.tasks.get(taskId)?.let { app.container.tasks.setCompleted(it, !it.isDone) }
-                }
-                else -> startActivity(Intent(this, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra(NotificationHelper.EXTRA_ROUTE, Route.TaskEditor(taskId = taskId).encode())
-                })
+        val c = app.container
+        when {
+            taskId != null && kind == KIND_TOGGLE -> app.appScope.launch {
+                c.tasks.get(taskId)?.let { c.tasks.setCompleted(it, !it.isDone) }
             }
+            taskId != null -> open(Route.TaskEditor(taskId = taskId))
+            // Same rule as the dashboard: toggles single check-ins, counts up multi-count habits.
+            habitId != null && kind == KIND_HABIT_CHECK_IN -> app.appScope.launch {
+                c.habits.get(habitId)?.takeIf { !it.isArchived }?.let { c.habits.checkIn(it, c.clock.today()) }
+            }
+            habitId != null -> open(Route.HabitDetail(habitId))
         }
         finish()
         @Suppress("DEPRECATION")
         overridePendingTransition(0, 0)
+    }
+
+    private fun open(route: Route) {
+        startActivity(Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(NotificationHelper.EXTRA_ROUTE, route.encode())
+        })
     }
 }

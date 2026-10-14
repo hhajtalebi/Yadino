@@ -106,7 +106,9 @@ import ir.yadino.app.ui.theme.LocalIsDark
 import ir.yadino.app.ui.theme.accent
 import ir.yadino.app.widget.CalendarWidgetProvider
 import ir.yadino.app.widget.ClockWidgetProvider
+import ir.yadino.app.widget.CountdownWidgetProvider
 import ir.yadino.app.widget.GoalWidgetProvider
+import ir.yadino.app.widget.HabitsWidgetProvider
 import ir.yadino.app.widget.QuickNoteWidgetProvider
 import ir.yadino.app.widget.TasksWidgetProvider
 import ir.yadino.app.widget.TodayWidgetProvider
@@ -501,6 +503,8 @@ private val WIDGET_TYPES = listOf(
     WidgetType(QuickNoteWidgetProvider::class.java, R.string.widget_note_name, R.string.widget_note_desc),
     WidgetType(GoalWidgetProvider::class.java, R.string.widget_goal_name, R.string.widget_goal_desc),
     WidgetType(ClockWidgetProvider::class.java, R.string.widget_clock_name, R.string.widget_clock_desc),
+    WidgetType(HabitsWidgetProvider::class.java, R.string.widget_habits_name, R.string.widget_habits_desc),
+    WidgetType(CountdownWidgetProvider::class.java, R.string.widget_countdown_name, R.string.widget_countdown_desc),
 )
 
 @Composable
