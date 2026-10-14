@@ -22,6 +22,8 @@ sealed interface Route {
         val kind: String? = null,
         val fromNoteId: String? = null,
         val goalId: String? = null,
+        /** Start time (minute of the day) for a new item, e.g. from tapping an hour in the day view. */
+        val startMinute: Int? = null,
     ) : Route
 
     data class NoteEditor(val noteId: String? = null, val goalId: String? = null, val restoreDraft: Boolean = false) : Route
@@ -54,7 +56,7 @@ sealed interface Route {
             is Tasks -> b.authority("tasks").q("f", filter)
             Notes -> b.authority("notes")
             is Goals -> b.authority("goals").q("h", if (habitsTab) "1" else null)
-            is TaskEditor -> b.authority("task").q("id", taskId).q("d", date).q("k", kind).q("n", fromNoteId).q("g", goalId)
+            is TaskEditor -> b.authority("task").q("id", taskId).q("d", date).q("k", kind).q("n", fromNoteId).q("g", goalId).q("t", startMinute)
             is NoteEditor -> b.authority("note").q("id", noteId).q("g", goalId).q("r", if (restoreDraft) "1" else null)
             is GoalEditor -> b.authority("goal-edit").q("id", goalId)
             is GoalDetail -> b.authority("goal").q("id", goalId)
@@ -94,7 +96,7 @@ sealed interface Route {
                 "tasks" -> Tasks(p("f"))
                 "notes" -> Notes
                 "goals" -> Goals(p("h") == "1")
-                "task" -> TaskEditor(p("id"), p("d")?.toLongOrNull(), p("k"), p("n"), p("g"))
+                "task" -> TaskEditor(p("id"), p("d")?.toLongOrNull(), p("k"), p("n"), p("g"), p("t")?.toIntOrNull()?.takeIf { it in 0 until 24 * 60 })
                 "note" -> NoteEditor(p("id"), p("g"), p("r") == "1")
                 "goal-edit" -> GoalEditor(p("id"))
                 "goal" -> p("id")?.let { GoalDetail(it) }

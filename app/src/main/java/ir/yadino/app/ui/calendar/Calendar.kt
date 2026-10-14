@@ -1,11 +1,15 @@
 package ir.yadino.app.ui.calendar
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -56,7 +60,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -65,18 +72,29 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ir.yadino.app.R
+import ir.yadino.app.core.Formatter
 import ir.yadino.app.data.repository.ValidationException
 import ir.yadino.app.di.AppContainer
 import ir.yadino.app.ui.LocalContainer
@@ -111,9 +129,11 @@ import ir.yadino.domain.model.Category
 import ir.yadino.domain.model.Goal
 import ir.yadino.domain.model.PlanTemplate
 import ir.yadino.domain.model.Task
+import ir.yadino.domain.planning.DayLayout
 import ir.yadino.domain.planning.PlannedItem
 import ir.yadino.domain.planning.TaskFilters
 import ir.yadino.domain.validation.ValidationError
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -122,6 +142,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
+import kotlin.math.roundToInt
 
 data class CalendarData(
     val tasks: List<Task> = emptyList(),
@@ -186,6 +208,16 @@ class CalendarViewModel(c: AppContainer, initialDate: LocalDate?) : YadinoViewMo
 
     fun cancelTemplateSave() {
         templateSave.value = null
+    }
+
+    /** Changes the time of a task from the day timeline (drag, resize or accessibility action), with undo. */
+    fun retime(task: Task, startMinute: Int, endMinute: Int?) = launchSafe {
+        val start = LocalTime.of(startMinute / 60, startMinute % 60)
+        val end = endMinute?.takeIf { it in (startMinute + 1)..DayLayout.LAST_MINUTE }?.let { LocalTime.of(it / 60, it % 60) }
+        if (start == task.startTime && end == task.endTime) return@launchSafe
+        c.tasks.save(task.copy(startTime = start, endTime = end))
+        val range = Formatter(c.settings.currentOrDefault()).timeRange(start, end) ?: ""
+        message(UiMessage.WithUndo(R.string.msg_task_retimed, undo = { launchSafe { c.tasks.save(task) } }, args = listOf(task.title, range)))
     }
 }
 
@@ -393,7 +425,7 @@ private fun MonthGrid(month: JalaliDate, selected: LocalDate, data: CalendarData
                     val holiday = date.dayOfWeek == DayOfWeek.FRIDAY || IranianOccasions.isHoliday(cell.date, settings.lunarAdjustment)
                     val isSel = date == selected
                     val isToday = date == data.today
-                    val desc = fmt.date(date, DateFormatStyle.FULL) + if (items.isNotEmpty()) "، " + fmt.number(items.size) + " مورد" else ""
+                    val desc = fmt.date(date, DateFormatStyle.FULL) + if (items.isNotEmpty()) "، " + stringResource(R.string.n_items, fmt.number(items.size)) else ""
                     Column(
                         Modifier.weight(1f).aspectRatio(0.9f).padding(2.dp).clip(MaterialTheme.shapes.small)
                             .background(if (isSel) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
@@ -534,29 +566,52 @@ private fun WeekView(selected: LocalDate, data: CalendarData, vm: CalendarViewMo
     }
 }
 
-/** Timeline of a single day with work hours shaded; untimed items are listed on top. */
+/**
+ * Timeline of a single day with work hours shaded; untimed items are listed on top.
+ * Overlapping items are placed side by side. A long press drags an item to another time
+ * (15-minute steps, duration kept); the handle at its bottom edge changes the end time.
+ * Both offer undo; TalkBack users get the same changes as custom actions.
+ */
 @Composable
 private fun DayView(selected: LocalDate, data: CalendarData, vm: CalendarViewModel, onShift: (Int) -> Unit) {
     val settings = LocalAppSettings.current
     val fmt = LocalFormatter.current
-    val dark = LocalIsDark.current
     val nav = LocalNavigator.current
+    val c = LocalContainer.current
+    val density = LocalDensity.current
     val items = remember(data.tasks, selected, settings.showFutureOccurrences) {
         TaskFilters.planForRange(data.tasks, selected, selected, settings.showFutureOccurrences, settings.firstDayOfWeek)[selected].orEmpty()
     }
     val untimed = items.filter { it.task.startTime == null }
     val timed = items.filter { it.task.startTime != null }
     val hourHeight = 56.dp
+    val hourPx = with(density) { hourHeight.toPx() }
     val scroll = rememberScrollState()
+    val isToday = selected == data.today
+    val now by produceState(c.clock.nowTime(), isToday) {
+        while (isToday) {
+            delay(60_000L - System.currentTimeMillis() % 60_000L)
+            value = c.clock.nowTime()
+        }
+    }
     LaunchedEffect(selected) {
-        val start = settings.workDayStart.hour.coerceAtMost(20)
-        scroll.scrollTo((start * 56 * 2.5f).toInt())
+        val firstItem = timed.minOfOrNull { it.task.startTime!!.hour }
+        val hour = when {
+            isToday -> now.hour - 1
+            firstItem != null -> minOf(firstItem, settings.workDayStart.hour)
+            else -> settings.workDayStart.hour
+        }.coerceIn(0, 20)
+        scroll.scrollTo((hourPx * hour).roundToInt())
     }
     Column {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onShift(-1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(R.string.previous_day)) }
             Text(fmt.date(selected, DateFormatStyle.FULL), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleSmall)
             IconButton(onClick = { onShift(1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.next_day)) }
+        }
+        if (timed.any { !it.isProjected }) {
+            Text(stringResource(R.string.day_drag_hint), Modifier.fillMaxWidth().padding(horizontal = 16.dp), textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (untimed.isNotEmpty()) {
             Column(Modifier.padding(horizontal = 12.dp)) {
@@ -565,43 +620,221 @@ private fun DayView(selected: LocalDate, data: CalendarData, vm: CalendarViewMod
             }
             HorizontalDivider()
         }
-        Box(Modifier.fillMaxWidth().weight(1f).verticalScroll(scroll).padding(bottom = 96.dp)) {
-            Column {
-                for (h in 0 until 24) {
-                    val work = h >= settings.workDayStart.hour && h < settings.workDayEnd.hour.coerceAtLeast(settings.workDayStart.hour + 1) &&
-                        selected.dayOfWeek in settings.workDays
-                    Row(
-                        Modifier.fillMaxWidth().height(hourHeight)
-                            .background(if (work) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f) else Color.Transparent)
-                            .clickable { nav.navigate(Route.TaskEditor(date = selected.toEpochDay())) },
-                    ) {
-                        Text(fmt.time(java.time.LocalTime.of(h, 0)), Modifier.width(64.dp).padding(start = 8.dp, top = 2.dp),
-                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        HorizontalDivider(Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    }
+        DayTimeline(
+            timed, data.categories, selected, isToday, now, scroll,
+            onAddAt = { minute -> nav.navigate(Route.TaskEditor(date = selected.toEpochDay(), startMinute = minute)) },
+            onOpen = { task -> nav.navigate(Route.TaskEditor(taskId = task.id)) },
+            onRetime = vm::retime,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        )
+    }
+}
+
+/**
+ * The 24-hour grid of the day view with its items. Separate from the screen so that it can
+ * be tested without a database: [onRetime] receives the new start and end minute (end null =
+ * no end time) after a drag, a resize or an accessibility action.
+ */
+@Composable
+internal fun DayTimeline(
+    timed: List<PlannedItem>,
+    categories: Map<String, Category>,
+    day: LocalDate,
+    isToday: Boolean,
+    now: LocalTime,
+    scroll: ScrollState,
+    onAddAt: (minute: Int) -> Unit,
+    onOpen: (Task) -> Unit,
+    onRetime: (task: Task, startMinute: Int, endMinute: Int?) -> Unit,
+    modifier: Modifier = Modifier,
+    hourHeight: Dp = 56.dp,
+) {
+    val settings = LocalAppSettings.current
+    val fmt = LocalFormatter.current
+    val hourPx = with(LocalDensity.current) { hourHeight.toPx() }
+    val placements = remember(timed) {
+        DayLayout.layout(timed.map { item ->
+            val start = item.task.startTime!!.toMinuteOfDay()
+            val end = item.task.endTime?.toMinuteOfDay()?.takeIf { it > start } ?: minOf(start + DEFAULT_BLOCK_MINUTES, DayLayout.DAY_MINUTES)
+            // short items are drawn at least half an hour tall, so they take part in overlaps as such
+            DayLayout.Block(item, start, maxOf(end, minOf(start + MIN_BLOCK_MINUTES, DayLayout.DAY_MINUTES)))
+        })
+    }
+    Box(modifier.verticalScroll(scroll).padding(bottom = 96.dp)) {
+        Column {
+            for (h in 0 until 24) {
+                val work = h >= settings.workDayStart.hour && h < settings.workDayEnd.hour.coerceAtLeast(settings.workDayStart.hour + 1) &&
+                    day.dayOfWeek in settings.workDays
+                val hourText = fmt.time(LocalTime.of(h, 0))
+                Row(
+                    Modifier.fillMaxWidth().height(hourHeight)
+                        .background(if (work) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f) else Color.Transparent)
+                        .clickable(onClickLabel = stringResource(R.string.add_at_time, hourText)) { onAddAt(h * 60) },
+                ) {
+                    Text(hourText, Modifier.width(64.dp).padding(start = 8.dp, top = 2.dp),
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    HorizontalDivider(Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 }
             }
-            timed.forEachIndexed { index, item ->
-                val t = item.task
-                val start = t.startTime!!
-                val end = t.endTime ?: start.plusMinutes(45)
-                val top = hourHeight * (start.hour + start.minute / 60f)
-                val minutes = java.time.Duration.between(start, end).toMinutes().coerceAtLeast(30)
-                val height = hourHeight * (minutes / 60f)
-                val color = t.categoryId?.let { data.categories[it] }?.color?.accent(dark) ?: MaterialTheme.colorScheme.primary
-                Box(
-                    Modifier.padding(start = 70.dp + 8.dp * (index % 3), end = 8.dp).offset(y = top).fillMaxWidth().height(height)
-                        .clip(MaterialTheme.shapes.small).background(color.copy(alpha = if (item.isProjected) 0.12f else 0.22f))
-                        .border(1.dp, color.copy(alpha = 0.6f), MaterialTheme.shapes.small)
-                        .clickable { nav.navigate(Route.TaskEditor(taskId = t.id)) }
-                        .padding(6.dp),
-                ) {
-                    Column {
-                        Text(t.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(fmt.timeRange(t.startTime, t.endTime) ?: "", style = MaterialTheme.typography.labelSmall)
-                    }
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth().height(hourHeight * 24)) {
+            val gutter = 68.dp
+            val area = maxWidth - gutter - 8.dp
+            placements.forEach { p ->
+                key(p.key.task.id, p.key.date) {
+                    TimelineBlock(p, categories, hourHeight, hourPx, x = gutter + area / p.columns * p.column, width = area / p.columns, onOpen, onRetime)
                 }
+            }
+        }
+        if (isToday) {
+            val y = hourHeight * (now.hour + now.minute / 60f)
+            val color = MaterialTheme.colorScheme.error
+            Box(Modifier.offset(y = y - 1.dp).padding(start = 64.dp).fillMaxWidth().height(2.dp).background(color))
+            Box(Modifier.offset(x = 60.dp, y = y - 4.dp).size(8.dp).clip(CircleShape).background(color))
+        }
+    }
+}
+
+private const val DEFAULT_BLOCK_MINUTES = 45
+private const val MIN_BLOCK_MINUTES = 30
+
+private fun LocalTime.toMinuteOfDay(): Int = hour * 60 + minute
+
+/** One item on the day timeline; stored items can be dragged and resized. */
+@Composable
+private fun TimelineBlock(
+    p: DayLayout.Placement<PlannedItem>,
+    categories: Map<String, Category>,
+    hourHeight: Dp,
+    hourPx: Float,
+    x: Dp,
+    width: Dp,
+    onOpen: (Task) -> Unit,
+    onRetime: (Task, Int, Int?) -> Unit,
+) {
+    val fmt = LocalFormatter.current
+    val dark = LocalIsDark.current
+    val haptics = LocalHapticFeedback.current
+    val t = p.key.task
+    val editable = !p.key.isProjected
+    val storedEnd = t.endTime?.toMinuteOfDay()
+    var mode by remember { mutableStateOf(DragMode.NONE) }
+    var dragPx by remember { mutableFloatStateOf(0f) }
+    // the item changed underneath (saved, or edited elsewhere): a running gesture is void
+    LaunchedEffect(t, p.start, p.end) {
+        mode = DragMode.NONE
+        dragPx = 0f
+    }
+    val deltaMinutes = (dragPx / hourPx * 60).roundToInt()
+    val (start, end) = when (mode) {
+        DragMode.MOVE -> DayLayout.move(p.start, p.end, deltaMinutes)
+        DragMode.RESIZE -> p.start to DayLayout.resize(p.start, p.end, deltaMinutes)
+        DragMode.NONE -> p.start to p.end
+    }
+    val shownEnd = maxOf(end, minOf(start + MIN_BLOCK_MINUTES, DayLayout.DAY_MINUTES))
+    val color = t.categoryId?.let { categories[it] }?.color?.accent(dark) ?: MaterialTheme.colorScheme.primary
+    val shape = MaterialTheme.shapes.small
+    val active = mode != DragMode.NONE
+
+    fun commitMove(newStart: Int, newEnd: Int) {
+        if (newStart != p.start) onRetime(t, newStart, if (storedEnd != null) newEnd else null)
+    }
+    fun commitResize(newEnd: Int) {
+        if (newEnd != p.end && newEnd > p.start) onRetime(t, p.start, newEnd)
+    }
+
+    val earlier = stringResource(R.string.a11y_move_earlier, fmt.number(DayLayout.STEP))
+    val later = stringResource(R.string.a11y_move_later, fmt.number(DayLayout.STEP))
+    val longer = stringResource(R.string.a11y_extend, fmt.number(DayLayout.STEP))
+    val shorter = stringResource(R.string.a11y_shorten, fmt.number(DayLayout.STEP))
+    val timeText = fmt.timeRange(LocalTime.of(start / 60, start % 60), (if (storedEnd != null || mode == DragMode.RESIZE) end else null)
+        ?.takeIf { it <= DayLayout.LAST_MINUTE }?.let { LocalTime.of(it / 60, it % 60) }) ?: ""
+    Box(
+        Modifier
+            .offset(x = x, y = hourHeight * (start / 60f))
+            .width(width - 2.dp)
+            .height(hourHeight * ((shownEnd - start) / 60f))
+            .zIndex(if (active) 1f else 0f)
+            .shadow(if (active) 6.dp else 0.dp, shape)
+            .clip(shape)
+            .background(lerp(MaterialTheme.colorScheme.surface, color, if (p.key.isProjected) 0.12f else if (active) 0.35f else 0.22f))
+            .border(1.dp, color.copy(alpha = 0.6f), shape)
+            .then(
+                if (editable) {
+                    Modifier.pointerInput(t, p.start, p.end) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                dragPx = 0f
+                                mode = DragMode.MOVE
+                            },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                dragPx += amount.y
+                            },
+                            onDragEnd = {
+                                val (newStart, newEnd) = DayLayout.move(p.start, p.end, (dragPx / hourPx * 60).roundToInt())
+                                mode = DragMode.NONE
+                                dragPx = 0f
+                                commitMove(newStart, newEnd)
+                            },
+                            onDragCancel = {
+                                mode = DragMode.NONE
+                                dragPx = 0f
+                            },
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
+            .clickable { onOpen(t) }
+            .semantics {
+                if (editable) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(earlier) { DayLayout.move(p.start, p.end, -DayLayout.STEP).let { (s, e) -> commitMove(s, e) }; true },
+                        CustomAccessibilityAction(later) { DayLayout.move(p.start, p.end, DayLayout.STEP).let { (s, e) -> commitMove(s, e) }; true },
+                        CustomAccessibilityAction(longer) { commitResize(DayLayout.resize(p.start, p.end, DayLayout.STEP)); true },
+                        CustomAccessibilityAction(shorter) { commitResize(DayLayout.resize(p.start, p.end, -DayLayout.STEP)); true },
+                    )
+                }
+            },
+    ) {
+        Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
+            Text(t.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (shownEnd - start >= 40 || active) Text(timeText, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        }
+        if (editable) {
+            Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(14.dp)
+                    .pointerInput(t, p.start, p.end) {
+                        detectVerticalDragGestures(
+                            onDragStart = {
+                                dragPx = 0f
+                                mode = DragMode.RESIZE
+                            },
+                            onVerticalDrag = { change, amount ->
+                                change.consume()
+                                dragPx += amount
+                            },
+                            onDragEnd = {
+                                val newEnd = DayLayout.resize(p.start, p.end, (dragPx / hourPx * 60).roundToInt())
+                                mode = DragMode.NONE
+                                dragPx = 0f
+                                commitResize(newEnd)
+                            },
+                            onDragCancel = {
+                                mode = DragMode.NONE
+                                dragPx = 0f
+                            },
+                        )
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(Modifier.width(28.dp).height(3.dp).clip(CircleShape).background(color.copy(alpha = 0.7f)))
             }
         }
     }
 }
+
+private enum class DragMode { NONE, MOVE, RESIZE }

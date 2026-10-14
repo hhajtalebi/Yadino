@@ -151,7 +151,9 @@ class TaskEditorViewModel(c: AppContainer, private val route: Route.TaskEditor) 
                 val note = route.fromNoteId?.let { c.notes.get(it) }
                 // A checklist in the note becomes subtasks; the remaining text becomes the description.
                 val fromNote = note?.let { Checklist.split(it.content) }
-                val start = if (date != null && (kind != TaskKind.TASK || settings.defaultTaskTime != null)) settings.defaultTaskTime ?: LocalTime.of(9, 0) else null
+                val requested = route.startMinute?.takeIf { date != null }?.let { LocalTime.of(it / 60, it % 60) }
+                val start = requested
+                    ?: if (date != null && (kind != TaskKind.TASK || settings.defaultTaskTime != null)) settings.defaultTaskTime ?: LocalTime.of(9, 0) else null
                 val end = if (kind == TaskKind.EVENT && start != null) start.plusMinutes(settings.defaultTaskDurationMinutes.toLong()).takeIf { it.isAfter(start) } else null
                 val task = Task(
                     id = Ids.newId(), title = note?.let { NoteFilters.displayTitle(it, 200) } ?: "", description = fromNote?.text ?: "",

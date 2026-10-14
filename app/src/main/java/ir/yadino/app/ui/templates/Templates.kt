@@ -220,7 +220,7 @@ private fun TemplateCard(s: TemplateSummary, onOpen: () -> Unit, onApply: () -> 
                     Text(t.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Pill(stringResource(if (t.isWeek) R.string.template_kind_week else R.string.template_kind_day))
-                        Text(stringResource(R.string.template_items_count, fmt.number(s.items.size)), style = MaterialTheme.typography.bodySmall,
+                        Text(stringResource(R.string.n_items, fmt.number(s.items.size)), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
