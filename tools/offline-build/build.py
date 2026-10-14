@@ -46,8 +46,8 @@ STDLIB = KOTLIN_HOME / "lib" / "kotlin-stdlib.jar"
 APP_ID = "ir.yadino.app"
 MIN_SDK = 26
 TARGET_SDK = 35
-VERSION_CODE = 3
-VERSION_NAME = "1.2.0"
+VERSION_CODE = 4
+VERSION_NAME = "1.3.0"
 
 ENV = dict(os.environ)
 ENV["JAVA_HOME"] = str(JAVA_HOME)
