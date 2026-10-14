@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="rtl"
+    tools:ignore="HardcodedText">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg"
+        android:importantForAccessibility="no" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="10dp">
+    <TextView
+        android:id="@+id/w_weekday"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="چهارشنبه"
+        android:textColor="@color/widget_text"
+        android:textSize="14sp"
+        android:textStyle="normal"
+        android:textDirection="rtl" />
+    <TextView
+        android:id="@+id/w_day"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="۲۲"
+        android:textColor="@color/widget_accent"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        android:textDirection="rtl"
+        android:includeFontPadding="false" />
+    <TextView
+        android:id="@+id/w_month"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="مهر ۱۴۰۵"
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="12sp"
+        android:textStyle="normal"
+        android:textDirection="rtl" />
+    <TextView
+        android:id="@+id/w_occasion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text=""
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="12sp"
+        android:textStyle="normal"
+        android:textDirection="rtl"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:gravity="center" />
+    </LinearLayout>
+</FrameLayout>

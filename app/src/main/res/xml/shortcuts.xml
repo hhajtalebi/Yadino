@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher shortcuts (long press on the app icon). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_task"
+        android:shortcutId="new_task"
+        android:shortcutLongLabel="@string/shortcut_new_task_long"
+        android:shortcutShortLabel="@string/new_task">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ir.yadino.app.MainActivity"
+            android:targetPackage="ir.yadino.app">
+            <extra android:name="ir.yadino.app.extra.ROUTE" android:value="yadino://task" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_note"
+        android:shortcutId="quick_note"
+        android:shortcutLongLabel="@string/shortcut_quick_note_long"
+        android:shortcutShortLabel="@string/quick_note">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ir.yadino.app.MainActivity"
+            android:targetPackage="ir.yadino.app">
+            <extra android:name="ir.yadino.app.extra.ROUTE" android:value="yadino://note" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_calendar"
+        android:shortcutId="calendar"
+        android:shortcutLongLabel="@string/shortcut_calendar_long"
+        android:shortcutShortLabel="@string/tab_calendar">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ir.yadino.app.MainActivity"
+            android:targetPackage="ir.yadino.app">
+            <extra android:name="ir.yadino.app.extra.ROUTE" android:value="yadino://calendar" />
+        </intent>
+    </shortcut>
+</shortcuts>

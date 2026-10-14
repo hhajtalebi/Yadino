@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup (API < 31). Only the database and DataStore files are included;
+     SharedPreferences (which hold the Keystore-encrypted OAuth tokens) are never backed up. -->
+<full-backup-content>
+    <include domain="database" path="yadino.db" />
+    <include domain="database" path="yadino.db-wal" />
+    <include domain="file" path="datastore/" />
+</full-backup-content>

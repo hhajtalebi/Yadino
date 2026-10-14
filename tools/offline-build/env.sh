@@ -1,0 +1,17 @@
+# Source this file: sets up the hermetic toolchain environment.
+export TC="${YADINO_TC:-$HOME/.cache/yadino-toolchain}"
+export JAVA_HOME="$TC/jdk17/linux-x86"
+export KOTLIN_HOME="$TC/kotlinc"
+export PATH="$JAVA_HOME/bin:$KOTLIN_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$TC/sdk/tools/linux/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export ANDROID_JAR="$TC/sdk/35/public/android.jar"
+export AAPT2="$TC/sdk/tools/linux/bin/aapt2"
+export ZIPALIGN="$TC/sdk/tools/linux/bin/zipalign"
+export APKSIGNER_JAR="$TC/sdk/tools/linux/lib/apksigner.jar"
+export R8_JAR="$TC/r8/r8.jar"
+export M2_ANDROIDX="$TC/sdk/current/androidx/m2repository"
+export M2_TOOLS="$TC/m2tools/common/m2/repository"
+export DEPS="$TC/out/deps"
+export KOTLIN_STDLIB="$KOTLIN_HOME/lib/kotlin-stdlib.jar"
+# kotlinc JVM memory
+export JAVA_OPTS="${JAVA_OPTS:--Xmx2g -XX:+UseParallelGC}"

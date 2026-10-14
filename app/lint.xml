@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Android Lint configuration (used by Gradle and by tools/offline-build). -->
+<lint>
+    <!-- Persian is the default and only UI language; there is nothing to translate. -->
+    <issue id="MissingTranslation" severity="ignore" />
+</lint>

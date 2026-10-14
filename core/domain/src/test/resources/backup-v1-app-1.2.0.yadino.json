@@ -1,0 +1,245 @@
+{
+  "format": "yadino-backup",
+  "formatVersion": 1,
+  "appVersion": "1.2.0",
+  "createdAt": "2026-10-10T08:00:00Z",
+  "counts": {
+    "tasks": 2,
+    "subtasks": 1,
+    "notes": 1,
+    "goals": 1,
+    "milestones": 1,
+    "habits": 1,
+    "habitLogs": 1,
+    "categories": 7,
+    "completions": 1
+  },
+  "checksum": "01d568883966a410a67a3ffb4001062b1656be2d005b120b78286044cebd0732",
+  "data": {
+    "categories": [
+      {
+        "id": "default-category-work",
+        "name": "کار",
+        "color": "SKY",
+        "kind": "GENERAL",
+        "isDefault": true,
+        "sortOrder": 0,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      },
+      {
+        "id": "default-category-personal",
+        "name": "شخصی",
+        "color": "GREEN",
+        "kind": "GENERAL",
+        "isDefault": true,
+        "sortOrder": 1,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      },
+      {
+        "id": "default-category-study",
+        "name": "مطالعه و یادگیری",
+        "color": "LAVENDER",
+        "kind": "GENERAL",
+        "isDefault": true,
+        "sortOrder": 2,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      },
+      {
+        "id": "default-category-health",
+        "name": "سلامت و ورزش",
+        "color": "ROSE",
+        "kind": "GENERAL",
+        "isDefault": true,
+        "sortOrder": 3,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      },
+      {
+        "id": "default-category-family",
+        "name": "خانواده",
+        "color": "GOLD",
+        "kind": "GENERAL",
+        "isDefault": true,
+        "sortOrder": 4,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      },
+      {
+        "id": "default-category-finance",
+        "name": "مالی",
+        "color": "SAND",
+        "kind": "GENERAL",
+        "isDefault": true,
+        "sortOrder": 5,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      },
+      {
+        "id": "default-category-ideas",
+        "name": "ایده‌ها",
+        "color": "CREAM",
+        "kind": "NOTE",
+        "isDefault": true,
+        "sortOrder": 6,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000001",
+        "title": "جلسه هفتگی تیم",
+        "description": "مرور کارهای هفته",
+        "kind": "EVENT",
+        "priority": 2,
+        "status": "TODO",
+        "categoryId": "default-category-work",
+        "tags": [
+          "کار"
+        ],
+        "date": "2026-10-14",
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "dueDate": null,
+        "dueTime": null,
+        "reminderOffset": 15,
+        "recurrence": "FREQ=WEEKLY;DAYS=WE",
+        "recurrenceStart": "2026-10-14",
+        "goalId": null,
+        "sourceNoteId": null,
+        "sortOrder": 0,
+        "isArchived": false,
+        "completedAt": null,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      },
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000002",
+        "title": "خرید کتاب",
+        "description": "",
+        "kind": "TASK",
+        "priority": 1,
+        "status": "TODO",
+        "categoryId": null,
+        "tags": [],
+        "date": "2026-10-14",
+        "startTime": null,
+        "endTime": null,
+        "dueDate": "2026-10-16",
+        "dueTime": null,
+        "reminderOffset": null,
+        "recurrence": null,
+        "recurrenceStart": null,
+        "goalId": "7b1e0c1e-0000-4000-8000-000000000010",
+        "sourceNoteId": null,
+        "sortOrder": 0,
+        "isArchived": false,
+        "completedAt": null,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "subtasks": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000003",
+        "taskId": "7b1e0c1e-0000-4000-8000-000000000002",
+        "title": "انتخاب از فهرست",
+        "isDone": false,
+        "sortOrder": 0,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "completions": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000004",
+        "taskId": "7b1e0c1e-0000-4000-8000-000000000001",
+        "occurrenceDate": "2026-10-07",
+        "completedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "notes": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000005",
+        "title": "فهرست خرید",
+        "content": "- [ ] نان\n- [x] شیر",
+        "color": "CREAM",
+        "categoryId": null,
+        "tags": [],
+        "isPinned": false,
+        "isArchived": false,
+        "goalId": null,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "goals": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000010",
+        "title": "خواندن ۱۲ کتاب",
+        "description": "",
+        "term": "SHORT",
+        "priority": 1,
+        "status": "ACTIVE",
+        "isArchived": false,
+        "startDate": "2026-03-21",
+        "deadline": "2027-03-20",
+        "color": "GREEN",
+        "categoryId": null,
+        "manualProgress": null,
+        "completedAt": null,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "milestones": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000011",
+        "goalId": "7b1e0c1e-0000-4000-8000-000000000010",
+        "title": "سه کتاب اول",
+        "isDone": false,
+        "dueDate": null,
+        "sortOrder": 0,
+        "completedAt": null,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "habits": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000020",
+        "title": "مطالعه",
+        "description": "",
+        "color": "GREEN",
+        "icon": "check",
+        "scheduleType": "DAILY",
+        "scheduleDays": 0,
+        "scheduleTimes": 0,
+        "targetPerDay": 1,
+        "reminderTime": null,
+        "goalId": "7b1e0c1e-0000-4000-8000-000000000010",
+        "startDate": "2026-10-01",
+        "isArchived": false,
+        "sortOrder": 0,
+        "createdAt": "2026-10-10T08:00:00Z",
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "habitLogs": [
+      {
+        "id": "7b1e0c1e-0000-4000-8000-000000000021",
+        "habitId": "7b1e0c1e-0000-4000-8000-000000000020",
+        "date": "2026-10-13",
+        "count": 1,
+        "updatedAt": "2026-10-10T08:00:00Z"
+      }
+    ],
+    "settings": {
+      "general.numerals": "PERSIAN"
+    },
+    "dashboard": null
+  }
+}

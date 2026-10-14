@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand palette: dark green, cream and soft gold -->
+    <color name="yadino_green">#1F5C45</color>
+    <color name="yadino_green_light">#8FD3B0</color>
+    <color name="yadino_cream">#FBF6E9</color>
+    <color name="yadino_night">#0F1A15</color>
+
+    <!-- Widget colors (light) -->
+    <color name="widget_bg_light">#FFFBF2</color>
+    <color name="widget_text_light">#1B1F1C</color>
+    <color name="widget_text_secondary_light">#5B635E</color>
+    <color name="widget_accent_light">#1F5C45</color>
+    <!-- Widget colors (dark) -->
+    <color name="widget_bg_dark">#16231D</color>
+    <color name="widget_text_dark">#EEF2EE</color>
+    <color name="widget_text_secondary_dark">#A9B7AE</color>
+    <color name="widget_accent_dark">#8FD3B0</color>
+    <!-- Night-aware aliases used by widget layouts (overridden in values-night) -->
+    <color name="widget_text">#1B1F1C</color>
+    <color name="widget_text_secondary">#5B635E</color>
+    <color name="widget_accent">#1F5C45</color>
+    <color name="widget_holiday">#C0392B</color>
+    <color name="widget_gold">#C9A227</color>
+</resources>
