@@ -130,14 +130,20 @@ import ir.yadino.domain.model.Goal
 import ir.yadino.domain.model.PlanTemplate
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.planning.DayLayout
+import ir.yadino.domain.planning.ExternalEvents
 import ir.yadino.domain.planning.PlannedItem
 import ir.yadino.domain.planning.TaskFilters
 import ir.yadino.domain.validation.ValidationError
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -151,15 +157,33 @@ data class CalendarData(
     val goals: List<Goal> = emptyList(),
     val subtasks: Map<String, Pair<Int, Int>> = emptyMap(),
     val today: LocalDate = LocalDate.now(),
+    /** Read-only events of the device calendars, per day (empty when that feature is off). */
+    val external: Map<LocalDate, List<ExternalEvents.OnDay>> = emptyMap(),
 )
 
 class CalendarViewModel(c: AppContainer, initialDate: LocalDate?) : YadinoViewModel(c) {
     val selected = MutableStateFlow(initialDate ?: c.clock.today())
     val view = MutableStateFlow(c.settings.currentOrDefault().defaultCalendarView)
 
-    val data: StateFlow<CalendarData> = combine(c.tasks.tasks, c.categories.categories, c.goals.goals, c.tasks.subtaskProgress, todayFlow(c.clock)) { t, cats, g, s, d ->
+    private val plan = combine(c.tasks.tasks, c.categories.categories, c.goals.goals, c.tasks.subtaskProgress, todayFlow(c.clock)) { t, cats, g, s, d ->
         CalendarData(t, cats.associateBy { it.id }, g.filter { !it.isArchived && it.deadline != null }, s, d)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CalendarData(today = c.clock.today()))
+    }
+
+    /**
+     * Device calendar events around the selected month (the month before and after, plus a
+     * week on each side, so swiping and the week view need no new query), per day.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val external = selected.map { JalaliDate.from(it).monthIndex }.distinctUntilChanged().flatMapLatest { month ->
+        val from = JalaliDate.ofMonthIndex(month - 1).toLocalDate().minusDays(7)
+        val to = JalaliDate.ofMonthIndex(month + 2).toLocalDate().plusDays(6)
+        val zone = c.clock.zone()
+        c.deviceCalendars.events(from, to, zone, c.app.getString(R.string.device_event_untitled))
+            .map { ExternalEvents.byDay(it, from, to, zone) }
+    }.onStart { emit(emptyMap()) }
+
+    val data: StateFlow<CalendarData> = combine(plan, external) { d, e -> d.copy(external = e) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CalendarData(today = c.clock.today()))
 
     fun select(d: LocalDate) { selected.value = d }
     fun setView(v: CalendarView) { view.value = v }
@@ -421,11 +445,13 @@ private fun MonthGrid(month: JalaliDate, selected: LocalDate, data: CalendarData
                     val cell = grid[r * 7 + col]
                     val date = cell.date.toLocalDate()
                     val items = plan[date].orEmpty()
+                    val external = data.external[date].orEmpty()
                     val deadlines = data.tasks.count { it.dueDate == date && it.isOpen && it.date != date } + data.goals.count { it.deadline == date }
                     val holiday = date.dayOfWeek == DayOfWeek.FRIDAY || IranianOccasions.isHoliday(cell.date, settings.lunarAdjustment)
                     val isSel = date == selected
                     val isToday = date == data.today
-                    val desc = fmt.date(date, DateFormatStyle.FULL) + if (items.isNotEmpty()) "، " + stringResource(R.string.n_items, fmt.number(items.size)) else ""
+                    val desc = fmt.date(date, DateFormatStyle.FULL) + (if (items.isNotEmpty()) "، " + stringResource(R.string.n_items, fmt.number(items.size)) else "") +
+                        if (external.isNotEmpty()) "، " + stringResource(R.string.n_device_events, fmt.number(external.size)) else ""
                     Column(
                         Modifier.weight(1f).aspectRatio(0.9f).padding(2.dp).clip(MaterialTheme.shapes.small)
                             .background(if (isSel) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
@@ -451,6 +477,7 @@ private fun MonthGrid(month: JalaliDate, selected: LocalDate, data: CalendarData
                                 Box(Modifier.size(5.dp).clip(CircleShape).background(color.copy(alpha = if (item.isProjected) 0.45f else 1f)))
                             }
                             if (deadlines > 0) Box(Modifier.size(5.dp).clip(CircleShape).background(red))
+                            if (external.isNotEmpty()) DeviceEventMarker(external.first().event.color)
                         }
                     }
                 }
@@ -471,6 +498,7 @@ private fun DayAgenda(date: LocalDate, data: CalendarData, vm: CalendarViewModel
     val occasions = IranianOccasions.occasionsOf(JalaliDate.from(date), settings.occasionDisplay, settings.lunarAdjustment)
     val deadlines = data.tasks.filter { it.dueDate == date && it.date != date && it.isOpen }
     val goalDeadlines = data.goals.filter { it.deadline == date }
+    val external = data.external[date].orEmpty()
     LazyColumn(modifier.fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp)) {
         item {
             Text(fmt.date(date, DateFormatStyle.FULL), style = MaterialTheme.typography.titleMedium)
@@ -481,7 +509,7 @@ private fun DayAgenda(date: LocalDate, data: CalendarData, vm: CalendarViewModel
             }
             Spacer(Modifier.height(4.dp))
         }
-        if (items.isEmpty() && deadlines.isEmpty() && goalDeadlines.isEmpty()) {
+        if (items.isEmpty() && deadlines.isEmpty() && goalDeadlines.isEmpty() && external.isEmpty()) {
             item {
                 Row(Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, null, tint = MaterialTheme.colorScheme.outline)
@@ -491,6 +519,10 @@ private fun DayAgenda(date: LocalDate, data: CalendarData, vm: CalendarViewModel
             }
         }
         items(items, key = { it.task.id + it.date }) { item -> AgendaRow(item, data, vm) }
+        if (external.isNotEmpty()) {
+            item { Text(stringResource(R.string.device_events), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp)) }
+            items(external, key = { "e" + it.event.key }) { DeviceEventRow(it) }
+        }
         if (deadlines.isNotEmpty()) {
             item { Text(stringResource(R.string.deadlines_today), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp)) }
             items(deadlines, key = { "d" + it.id }) { t ->
@@ -543,6 +575,7 @@ private fun WeekView(selected: LocalDate, data: CalendarData, vm: CalendarViewMo
         LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(days, key = { it.toEpochDay() }) { d ->
                 val items = plan[d].orEmpty()
+                val external = data.external[d].orEmpty()
                 val holiday = d.dayOfWeek == DayOfWeek.FRIDAY || IranianOccasions.isHoliday(JalaliDate.from(d), settings.lunarAdjustment)
                 Card(
                     colors = CardDefaults.cardColors(containerColor = if (d == data.today) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerLow),
@@ -557,8 +590,11 @@ private fun WeekView(selected: LocalDate, data: CalendarData, vm: CalendarViewMo
                         IranianOccasions.occasionsOf(JalaliDate.from(d), settings.occasionDisplay, settings.lunarAdjustment).forEach { o ->
                             Text(o.title + if (o.isApproximate) " (" + stringResource(R.string.approximate) + ")" else "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                         }
-                        if (items.isEmpty()) Text(stringResource(R.string.day_empty_short), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (items.isEmpty() && external.isEmpty()) {
+                            Text(stringResource(R.string.day_empty_short), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         items.forEach { AgendaRow(it, data, vm) }
+                        external.forEach { DeviceEventRow(it) }
                     }
                 }
             }
@@ -584,6 +620,9 @@ private fun DayView(selected: LocalDate, data: CalendarData, vm: CalendarViewMod
     }
     val untimed = items.filter { it.task.startTime == null }
     val timed = items.filter { it.task.startTime != null }
+    val external = data.external[selected].orEmpty()
+    val externalAllDay = external.filter { it.isAllDay }
+    val externalTimed = external.filter { !it.isAllDay }
     val hourHeight = 56.dp
     val hourPx = with(density) { hourHeight.toPx() }
     val scroll = rememberScrollState()
@@ -595,7 +634,7 @@ private fun DayView(selected: LocalDate, data: CalendarData, vm: CalendarViewMod
         }
     }
     LaunchedEffect(selected) {
-        val firstItem = timed.minOfOrNull { it.task.startTime!!.hour }
+        val firstItem = (timed.map { it.task.startTime!!.hour } + externalTimed.mapNotNull { (it.slot as? ExternalEvents.Slot.Timed)?.start?.div(60) }).minOrNull()
         val hour = when {
             isToday -> now.hour - 1
             firstItem != null -> minOf(firstItem, settings.workDayStart.hour)
@@ -613,10 +652,11 @@ private fun DayView(selected: LocalDate, data: CalendarData, vm: CalendarViewMod
             Text(stringResource(R.string.day_drag_hint), Modifier.fillMaxWidth().padding(horizontal = 16.dp), textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (untimed.isNotEmpty()) {
+        if (untimed.isNotEmpty() || externalAllDay.isNotEmpty()) {
             Column(Modifier.padding(horizontal = 12.dp)) {
                 Text(stringResource(R.string.all_day), style = MaterialTheme.typography.labelLarge)
                 untimed.forEach { AgendaRow(it, data, vm) }
+                externalAllDay.forEach { DeviceEventRow(it) }
             }
             HorizontalDivider()
         }
@@ -626,6 +666,7 @@ private fun DayView(selected: LocalDate, data: CalendarData, vm: CalendarViewMod
             onOpen = { task -> nav.navigate(Route.TaskEditor(taskId = task.id)) },
             onRetime = vm::retime,
             modifier = Modifier.fillMaxWidth().weight(1f),
+            external = externalTimed,
         )
     }
 }
@@ -648,17 +689,25 @@ internal fun DayTimeline(
     onRetime: (task: Task, startMinute: Int, endMinute: Int?) -> Unit,
     modifier: Modifier = Modifier,
     hourHeight: Dp = 56.dp,
+    /** Timed events of the device calendars on this day: shown read-only next to the items. */
+    external: List<ExternalEvents.OnDay> = emptyList(),
 ) {
     val settings = LocalAppSettings.current
     val fmt = LocalFormatter.current
     val hourPx = with(LocalDensity.current) { hourHeight.toPx() }
-    val placements = remember(timed) {
-        DayLayout.layout(timed.map { item ->
+    val placements = remember(timed, external) {
+        val blocks = ArrayList<DayLayout.Block<Any>>(timed.size + external.size)
+        timed.forEach { item ->
             val start = item.task.startTime!!.toMinuteOfDay()
             val end = item.task.endTime?.toMinuteOfDay()?.takeIf { it > start } ?: minOf(start + DEFAULT_BLOCK_MINUTES, DayLayout.DAY_MINUTES)
             // short items are drawn at least half an hour tall, so they take part in overlaps as such
-            DayLayout.Block(item, start, maxOf(end, minOf(start + MIN_BLOCK_MINUTES, DayLayout.DAY_MINUTES)))
-        })
+            blocks += DayLayout.Block<Any>(item, start, maxOf(end, minOf(start + MIN_BLOCK_MINUTES, DayLayout.DAY_MINUTES)))
+        }
+        external.forEach { e ->
+            val slot = e.slot as? ExternalEvents.Slot.Timed ?: return@forEach
+            blocks += DayLayout.Block<Any>(e, slot.start, maxOf(slot.end, minOf(slot.start + MIN_BLOCK_MINUTES, DayLayout.DAY_MINUTES)))
+        }
+        DayLayout.layout(blocks)
     }
     Box(modifier.verticalScroll(scroll).padding(bottom = 96.dp)) {
         Column {
@@ -681,8 +730,14 @@ internal fun DayTimeline(
             val gutter = 68.dp
             val area = maxWidth - gutter - 8.dp
             placements.forEach { p ->
-                key(p.key.task.id, p.key.date) {
-                    TimelineBlock(p, categories, hourHeight, hourPx, x = gutter + area / p.columns * p.column, width = area / p.columns, onOpen, onRetime)
+                val x = gutter + area / p.columns * p.column
+                when (val item = p.key) {
+                    is PlannedItem -> key(item.task.id, item.date) {
+                        TimelineBlock(DayLayout.Placement(item, p.start, p.end, p.column, p.columns), categories, hourHeight, hourPx, x = x, width = area / p.columns, onOpen, onRetime)
+                    }
+                    is ExternalEvents.OnDay -> key(item.event.key) {
+                        DeviceEventBlock(item, p.start, p.end, hourHeight, x = x, width = area / p.columns)
+                    }
                 }
             }
         }

@@ -9,6 +9,8 @@
     <!-- Optional Google Drive backup only (no other network use) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Optional, asked only when the user turns on "device calendars": read-only display of their events -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <!-- Custom Tabs for the OAuth consent page -->
     <queries>

@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import ir.yadino.app.data.device.DeviceCalendarPrefs
 import ir.yadino.domain.model.AppSettings
 import ir.yadino.domain.model.DashboardConfig
 import ir.yadino.domain.settings.DashboardCodec
@@ -144,6 +146,8 @@ class AppStateStore(context: Context) {
     private val folderName = stringPreferencesKey("backup.folderName")
     private val lastFolder = longPreferencesKey("backup.lastFolder")
     private val folderFailing = stringPreferencesKey("backup.folderFailing")
+    private val deviceCalendarsOn = stringPreferencesKey("deviceCalendars.enabled")
+    private val deviceCalendarsHidden = stringSetPreferencesKey("deviceCalendars.hidden")
 
     val status: Flow<BackupStatus> = store.safeData().map { p ->
         BackupStatus(
@@ -177,6 +181,22 @@ class AppStateStore(context: Context) {
     }
     suspend fun recordFolderBackup(at: Long) = store.edit { it[lastFolder] = at; it[lastLocal] = at; it.remove(folderFailing) }
     suspend fun setFolderBackupFailing(failing: Boolean) = store.edit { if (failing) it[folderFailing] = "1" else it.remove(folderFailing) }
+
+    /** Showing the device's calendars (device-specific: calendar ids differ between devices). */
+    val deviceCalendars: Flow<DeviceCalendarPrefs> = store.safeData().map { p ->
+        DeviceCalendarPrefs(
+            enabled = p[deviceCalendarsOn] == "1",
+            hidden = p[deviceCalendarsHidden].orEmpty().mapNotNull { it.toLongOrNull() }.toSet(),
+        )
+    }.distinctUntilChanged()
+
+    suspend fun setDeviceCalendarsEnabled(enabled: Boolean) = store.edit { if (enabled) it[deviceCalendarsOn] = "1" else it.remove(deviceCalendarsOn) }
+
+    suspend fun setDeviceCalendarHidden(calendarId: Long, hidden: Boolean) = store.edit { p ->
+        val ids = p[deviceCalendarsHidden].orEmpty().toMutableSet()
+        if (hidden) ids += calendarId.toString() else ids -= calendarId.toString()
+        if (ids.isEmpty()) p.remove(deviceCalendarsHidden) else p[deviceCalendarsHidden] = ids
+    }
 }
 
 /** Per-instance widget configuration. */

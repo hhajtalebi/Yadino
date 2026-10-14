@@ -301,6 +301,7 @@ fun SettingsCalendarScreen() {
                 vm.update { it.copy(showFutureOccurrences = v) }
             }
         }
+        DeviceCalendarGroup()
         SettingsGroup(stringResource(R.string.group_work)) {
             TimeSetting(stringResource(R.string.work_start), stringResource(R.string.work_start_desc), s.workDayStart) { v -> if (v != null) vm.update { it.copy(workDayStart = v) } }
             TimeSetting(stringResource(R.string.work_end), stringResource(R.string.work_end_desc), s.workDayEnd) { v -> if (v != null) vm.update { it.copy(workDayEnd = v) } }

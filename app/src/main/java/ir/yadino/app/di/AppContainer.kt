@@ -7,6 +7,8 @@ import ir.yadino.app.data.backup.BackupManager
 import ir.yadino.app.data.backup.BackupPasswordStore
 import ir.yadino.app.data.backup.GoogleDriveClient
 import ir.yadino.app.data.backup.SecureTokenStore
+import ir.yadino.app.data.device.DeviceCalendarRepository
+import ir.yadino.app.data.device.DeviceCalendarSource
 import ir.yadino.app.data.export.SpreadsheetExporter
 import ir.yadino.app.data.local.YadinoDatabase
 import ir.yadino.app.data.repository.CategoryRepository
@@ -45,6 +47,9 @@ class AppContainer(val app: Application, val appScope: CoroutineScope) {
     val widgets = WidgetUpdater(app, appScope)
     val tokenStore = SecureTokenStore(app)
     val drive = GoogleDriveClient(tokenStore)
+
+    /** Read-only events of the device's calendars, shown next to Yadino's own plan. */
+    val deviceCalendars = DeviceCalendarRepository(DeviceCalendarSource(app), appState)
 
     private val effects = object : DataSideEffects {
         override fun onTasksChanged(changed: List<Task>, deletedIds: List<String>) {

@@ -1,3 +1,3 @@
-b3426d77a409ba9df35f9730ac5799fbd1a64baee546bc8c023a9f568a5b727a  yadino-1.3.1-release.apk
-327ba65122231b5171181b341c76da0c9378453c1e3446b62098d6f274ffb14c  yadino-1.3.1-debug.apk
-8f3e29fdce10bdb14d88db67f492b33ddcf572c4f36c700c9b7ea8f1be64beb3  yadino-1.3.1-download.html
+8de04128ea477c8fda9abc6ac73ca90e90f002399ac25174221759020b8bcd04  yadino-1.4.0-release.apk
+3f6620cf4b5200482762bd16f90ed58da88b37de9c472883c7aff4f035b84a2d  yadino-1.4.0-debug.apk
+4b32a5a60fce3e8f6e73f6179ece6920d0decbcd6accb7349a2d7ddad8012c8a  yadino-1.4.0-download.html
