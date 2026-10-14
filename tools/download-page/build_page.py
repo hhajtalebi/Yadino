@@ -181,6 +181,7 @@ CSS = """
 @media (prefers-color-scheme:dark){:root{--cream:#0F1A15;--card:#16231D;--ink:#E3E9E4;--muted:#A9B7AE;
 --line:#2F3C36;--soft:#1A2721;--link:#8FD3B0}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%%}
 body{margin:0;font-family:Vazirmatn,Tahoma,"Segoe UI",sans-serif;background:var(--cream);color:var(--ink);line-height:1.9;font-size:16px}
 a{color:var(--link)}
@@ -205,6 +206,13 @@ font-size:1.25rem;line-height:1.5;box-shadow:0 6px 16px rgba(201,162,39,.35)}
 .qr .code{flex:0 0 auto;background:#fff;border-radius:12px;padding:6px;line-height:0}
 .qr .code svg{width:150px;height:150px}
 @media (max-width:640px) and (pointer:coarse){.qr{display:none}}
+.frame-help{border:2px solid var(--gold)}
+.frame-help .big{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}
+.frame-help .code{background:#fff;border-radius:12px;padding:6px;line-height:0}
+.frame-help .code svg{width:210px;height:210px}
+.copy{display:flex;gap:8px;flex-wrap:wrap}
+.copy input{flex:1 1 260px;min-width:0;font:inherit;font-size:.85rem;direction:ltr;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--ink)}
+.copy button{font:inherit;font-weight:700;padding:10px 18px;border:0;border-radius:12px;background:var(--green2);color:#FBF6E9;cursor:pointer}
 ol.steps{padding-inline-start:22px;margin:0}
 ol.steps li{margin-bottom:8px}
 ul{padding-inline-start:22px;margin:0}
@@ -219,6 +227,37 @@ th{color:var(--muted);font-weight:400;white-space:nowrap;width:7.5em}
 footer{text-align:center;color:var(--muted);font-size:.9rem;padding:8px 16px 32px}
 footer a{margin:0 6px}
 """
+
+
+# Hosted page: in a frame (where downloads are blocked) show the help with the QR code and the
+# address to copy; the copy button works with and without the asynchronous clipboard API.
+PAGE_SCRIPT = """<script>
+(function () {
+  var framed;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+  if (framed) {
+    document.getElementById("frame-help").hidden = false;
+    var card = document.getElementById("qr-card");
+    if (card) card.hidden = true;
+  }
+  var button = document.getElementById("copy-url");
+  if (!button) return;
+  button.addEventListener("click", function () {
+    var input = document.getElementById("page-url");
+    var status = document.getElementById("copy-status");
+    var done = function () { status.textContent = "نشانی کپی شد. آن را در نوار نشانی یک زبانه تازه یا مرورگر گوشی بچسبانید."; };
+    var manual = function () { status.textContent = "نشانی انتخاب شد؛ آن را کپی کنید (Ctrl+C یا نگه داشتن انگشت)."; };
+    input.focus();
+    input.select();
+    input.setSelectionRange(0, input.value.length);
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    if (ok) { done(); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(input.value).then(done, manual);
+    else manual();
+  });
+})();
+</script>"""
 
 
 # Unpacks the embedded APK (standalone page) into a Blob when the button is pressed. The size
@@ -261,7 +300,7 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
             print(f"warning: {primary.name} is not signed with the repository key ({found})", file=sys.stderr)
             cert = found
     version_fa = fa(info.version)
-    tail = ""  # standalone page: the unpacking script and the embedded APK, set below
+    tail = ""  # scripts placed before </body> (and the embedded APK of the standalone page), set below
     minor_fa = fa(".".join(info.version.split(".")[:2]))
     qr = None if standalone else qr_svg(page_url)
     if standalone:
@@ -303,7 +342,7 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
     </section>"""
     else:
         qr_block = "" if not qr else f"""
-    <section class="card qr" aria-label="کد QR">
+    <section class="card qr" id="qr-card" aria-label="کد QR">
       <div class="code">{qr}</div>
       <div>
         <h2>روی گوشی باز کنید</h2>
@@ -311,6 +350,25 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
         <div class="mono">{esc(page_url)}</div>
       </div>
     </section>"""
+    frame_help = ""
+    if not standalone:
+        # Previews (for example in a chat or an IDE) show pages inside a sandboxed frame where
+        # browsers refuse downloads; the script shows this help there instead.
+        scan = "" if not qr else f"""
+      <div class="big">
+        <div class="code">{qr}</div>
+        <div style="flex:1 1 220px"><b>۱. با گوشی اسکن کنید</b>
+          <p style="margin:4px 0 0">دوربین گوشی را روی این کد بگیرید و لینکی را که نشان می‌دهد باز کنید. صفحه در مرورگر گوشی باز می‌شود و دکمه «دانلود یادینو» کار می‌کند.</p></div>
+      </div>"""
+        frame_help = f"""
+  <section class="card frame-help" id="frame-help" hidden>
+    <h2>دانلود از داخل این پیش‌نمایش ممکن نیست</h2>
+    <p style="margin:0">این صفحه داخل یک قاب (پیش‌نمایش) باز شده است و مرورگر اجازه نمی‌دهد از داخل قاب فایلی دانلود شود. یکی از این راه‌ها را بروید:</p>{scan}
+    <p style="margin:8px 0 6px"><b>{"۲. " if qr else ""}یا این نشانی را در یک زبانه تازه یا در مرورگر گوشی باز کنید</b></p>
+    <div class="copy"><input id="page-url" readonly value="{esc(page_url)}" aria-label="نشانی صفحه دانلود"><button type="button" id="copy-url">کپی نشانی</button></div>
+    <p id="copy-status" class="alt" role="status" style="margin:6px 0 0">نشانی را کپی کنید و در نوار نشانی یک زبانه تازه بچسبانید، یا <a href="{esc(page_url)}" target="_blank" rel="noopener">صفحه را در زبانه تازه باز کنید</a>.</p>
+  </section>"""
+        tail = PAGE_SCRIPT + "\n"
     # items of a patch release (1.3.1) are labelled with their version; those of 1.3.0 are not
     news = "".join(
         f"<li>{esc(item)}" + ("" if v.endswith(".0") else f" <span style='color:var(--muted)'>(نسخه {fa(v)})</span>") + "</li>"
@@ -348,6 +406,7 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
   <span class="meta">{" · ".join(meta)}</span>
 </header>
 <main>
+{frame_help}
   <section class="card download">
     {download}
     {others}

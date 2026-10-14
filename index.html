@@ -16,6 +16,7 @@
 @media (prefers-color-scheme:dark){:root{--cream:#0F1A15;--card:#16231D;--ink:#E3E9E4;--muted:#A9B7AE;
 --line:#2F3C36;--soft:#1A2721;--link:#8FD3B0}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font-family:Vazirmatn,Tahoma,"Segoe UI",sans-serif;background:var(--cream);color:var(--ink);line-height:1.9;font-size:16px}
 a{color:var(--link)}
@@ -40,6 +41,13 @@ font-size:1.25rem;line-height:1.5;box-shadow:0 6px 16px rgba(201,162,39,.35)}
 .qr .code{flex:0 0 auto;background:#fff;border-radius:12px;padding:6px;line-height:0}
 .qr .code svg{width:150px;height:150px}
 @media (max-width:640px) and (pointer:coarse){.qr{display:none}}
+.frame-help{border:2px solid var(--gold)}
+.frame-help .big{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}
+.frame-help .code{background:#fff;border-radius:12px;padding:6px;line-height:0}
+.frame-help .code svg{width:210px;height:210px}
+.copy{display:flex;gap:8px;flex-wrap:wrap}
+.copy input{flex:1 1 260px;min-width:0;font:inherit;font-size:.85rem;direction:ltr;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--ink)}
+.copy button{font:inherit;font-weight:700;padding:10px 18px;border:0;border-radius:12px;background:var(--green2);color:#FBF6E9;cursor:pointer}
 ol.steps{padding-inline-start:22px;margin:0}
 ol.steps li{margin-bottom:8px}
 ul{padding-inline-start:22px;margin:0}
@@ -63,13 +71,26 @@ footer a{margin:0 6px}
   <span class="meta">نسخه ۱٫۳٫۱ · ۲۲ مهر ۱۴۰۵ · اندروید ۸ و بالاتر</span>
 </header>
 <main>
+
+  <section class="card frame-help" id="frame-help" hidden>
+    <h2>دانلود از داخل این پیش‌نمایش ممکن نیست</h2>
+    <p style="margin:0">این صفحه داخل یک قاب (پیش‌نمایش) باز شده است و مرورگر اجازه نمی‌دهد از داخل قاب فایلی دانلود شود. یکی از این راه‌ها را بروید:</p>
+      <div class="big">
+        <div class="code"><svg viewBox="0 0 198 198" class="segno"><title>QR</title><g transform="scale(6)"><path fill="#fff" d="M0 0h33v33h-33z"/><path class="qrline" stroke="#1f5c45" d="M2 2.5h7m4 0h1m2 0h1m1 0h4m2 0h7m-29 1h1m5 0h1m3 0h1m1 0h1m2 0h1m1 0h1m4 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m4 0h2m2 0h1m1 0h2m1 0h1m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m3 0h1m4 0h3m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h3m2 0h2m6 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m1 0h2m2 0h1m2 0h2m1 0h2m2 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-18 1h3m3 0h2m-19 1h1m2 0h1m1 0h2m1 0h3m1 0h1m1 0h3m2 0h1m1 0h1m1 0h1m-24 1h4m6 0h2m1 0h1m2 0h2m2 0h1m1 0h1m2 0h1m2 0h1m-26 1h2m1 0h1m1 0h1m2 0h4m2 0h3m1 0h1m3 0h3m-28 1h1m1 0h1m1 0h1m2 0h2m2 0h1m1 0h1m2 0h1m4 0h1m2 0h1m1 0h2m-27 1h1m1 0h1m1 0h7m2 0h5m1 0h3m2 0h1m1 0h2m-26 1h1m1 0h1m1 0h8m4 0h3m-20 1h1m1 0h5m4 0h2m7 0h1m1 0h5m-28 1h5m2 0h4m3 0h1m1 0h1m2 0h1m2 0h1m1 0h1m1 0h1m-24 1h3m3 0h1m2 0h1m1 0h1m1 0h1m2 0h2m5 0h1m-26 1h1m2 0h1m1 0h1m1 0h3m1 0h2m1 0h2m2 0h4m1 0h1m2 0h1m-29 1h1m5 0h2m1 0h1m4 0h1m1 0h1m1 0h1m2 0h1m2 0h1m2 0h2m-26 1h1m6 0h1m3 0h2m1 0h2m2 0h4m2 0h2m-29 1h1m1 0h2m1 0h2m1 0h1m1 0h3m3 0h1m2 0h6m1 0h1m-19 1h1m2 0h1m2 0h1m1 0h1m2 0h2m3 0h1m1 0h3m-29 1h7m2 0h2m5 0h2m2 0h1m1 0h1m1 0h1m2 0h1m-28 1h1m5 0h1m1 0h1m1 0h1m1 0h1m1 0h2m2 0h1m1 0h1m3 0h4m-28 1h1m1 0h3m1 0h1m4 0h2m3 0h3m1 0h5m2 0h2m-29 1h1m1 0h3m1 0h1m1 0h1m1 0h2m8 0h1m1 0h6m-28 1h1m1 0h3m1 0h1m2 0h4m1 0h1m9 0h3m1 0h1m-29 1h1m5 0h1m2 0h1m1 0h1m1 0h1m1 0h1m1 0h4m2 0h1m3 0h1m-28 1h7m1 0h2m1 0h6m3 0h2m3 0h1m1 0h1"/></g></svg></div>
+        <div style="flex:1 1 220px"><b>۱. با گوشی اسکن کنید</b>
+          <p style="margin:4px 0 0">دوربین گوشی را روی این کد بگیرید و لینکی را که نشان می‌دهد باز کنید. صفحه در مرورگر گوشی باز می‌شود و دکمه «دانلود یادینو» کار می‌کند.</p></div>
+      </div>
+    <p style="margin:8px 0 6px"><b>۲. یا این نشانی را در یک زبانه تازه یا در مرورگر گوشی باز کنید</b></p>
+    <div class="copy"><input id="page-url" readonly value="https://hhajtalebi.github.io/Yadino/" aria-label="نشانی صفحه دانلود"><button type="button" id="copy-url">کپی نشانی</button></div>
+    <p id="copy-status" class="alt" role="status" style="margin:6px 0 0">نشانی را کپی کنید و در نوار نشانی یک زبانه تازه بچسبانید، یا <a href="https://hhajtalebi.github.io/Yadino/" target="_blank" rel="noopener">صفحه را در زبانه تازه باز کنید</a>.</p>
+  </section>
   <section class="card download">
     <a class="btn" href="release/yadino-1.3.1-release.apk" download>دانلود یادینو<small>فایل APK · ۳٫۱ مگابایت</small></a><div class="alt">اگر دانلود شروع نشد (مثلاً وقتی صفحه داخل یک قاب نمایش داده می‌شود)، این لینک را در یک زبانه تازه یا روی گوشی باز کنید:<br><a class="mono" href="https://hhajtalebi.github.io/Yadino/release/yadino-1.3.1-release.apk" target="_blank" rel="noopener">https://hhajtalebi.github.io/Yadino/release/yadino-1.3.1-release.apk</a></div>
     <div class="alt"><a href="release/yadino-1.3.1-debug.apk" download>نسخه اشکال‌زدایی برای توسعه‌دهندگان</a> · ۶٫۰ مگابایت<br>بزرگ‌تر و کندتر؛ با همان کلید امضا شده و روی همین نسخه هم نصب می‌شود.</div>
     <p class="note"><b>نسخه آزمایشی:</b> یادینو با آزمون‌های خودکار بررسی شده، اما هنوز روی گوشی واقعی اجرا نشده است و ممکن است جایی خطا داشته باشد. اگر برنامه متوقف شد، صفحه «گزارش خطا» باز می‌شود؛ راهنمای آن پایین همین صفحه است.</p>
   </section>
 
-    <section class="card qr" aria-label="کد QR">
+    <section class="card qr" id="qr-card" aria-label="کد QR">
       <div class="code"><svg viewBox="0 0 198 198" class="segno"><title>QR</title><g transform="scale(6)"><path fill="#fff" d="M0 0h33v33h-33z"/><path class="qrline" stroke="#1f5c45" d="M2 2.5h7m4 0h1m2 0h1m1 0h4m2 0h7m-29 1h1m5 0h1m3 0h1m1 0h1m2 0h1m1 0h1m4 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m4 0h2m2 0h1m1 0h2m1 0h1m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m3 0h1m4 0h3m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h3m2 0h2m6 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m1 0h2m2 0h1m2 0h2m1 0h2m2 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-18 1h3m3 0h2m-19 1h1m2 0h1m1 0h2m1 0h3m1 0h1m1 0h3m2 0h1m1 0h1m1 0h1m-24 1h4m6 0h2m1 0h1m2 0h2m2 0h1m1 0h1m2 0h1m2 0h1m-26 1h2m1 0h1m1 0h1m2 0h4m2 0h3m1 0h1m3 0h3m-28 1h1m1 0h1m1 0h1m2 0h2m2 0h1m1 0h1m2 0h1m4 0h1m2 0h1m1 0h2m-27 1h1m1 0h1m1 0h7m2 0h5m1 0h3m2 0h1m1 0h2m-26 1h1m1 0h1m1 0h8m4 0h3m-20 1h1m1 0h5m4 0h2m7 0h1m1 0h5m-28 1h5m2 0h4m3 0h1m1 0h1m2 0h1m2 0h1m1 0h1m1 0h1m-24 1h3m3 0h1m2 0h1m1 0h1m1 0h1m2 0h2m5 0h1m-26 1h1m2 0h1m1 0h1m1 0h3m1 0h2m1 0h2m2 0h4m1 0h1m2 0h1m-29 1h1m5 0h2m1 0h1m4 0h1m1 0h1m1 0h1m2 0h1m2 0h1m2 0h2m-26 1h1m6 0h1m3 0h2m1 0h2m2 0h4m2 0h2m-29 1h1m1 0h2m1 0h2m1 0h1m1 0h3m3 0h1m2 0h6m1 0h1m-19 1h1m2 0h1m2 0h1m1 0h1m2 0h2m3 0h1m1 0h3m-29 1h7m2 0h2m5 0h2m2 0h1m1 0h1m1 0h1m2 0h1m-28 1h1m5 0h1m1 0h1m1 0h1m1 0h1m1 0h2m2 0h1m1 0h1m3 0h4m-28 1h1m1 0h3m1 0h1m4 0h2m3 0h3m1 0h5m2 0h2m-29 1h1m1 0h3m1 0h1m1 0h1m1 0h2m8 0h1m1 0h6m-28 1h1m1 0h3m1 0h1m2 0h4m1 0h1m9 0h3m1 0h1m-29 1h1m5 0h1m2 0h1m1 0h1m1 0h1m1 0h1m1 0h4m2 0h1m3 0h1m-28 1h7m1 0h2m1 0h6m3 0h2m3 0h1m1 0h1"/></g></svg></div>
       <div>
         <h2>روی گوشی باز کنید</h2>
@@ -137,5 +158,32 @@ footer a{margin:0 6px}
   یادینو هیچ داده‌ای جمع‌آوری یا ارسال نمی‌کند.<br>
   <a href="https://github.com/hhajtalebi/Yadino/tree/arena/532c1188-yadino">کد منبع</a>·<a href="https://github.com/hhajtalebi/Yadino/blob/arena/532c1188-yadino/CHANGELOG.md">تغییرات نسخه‌ها</a>·<a href="https://github.com/hhajtalebi/Yadino/blob/arena/532c1188-yadino/docs/TEST_REPORT.md">گزارش آزمون</a>·<a href="https://github.com/hhajtalebi/Yadino/blob/arena/532c1188-yadino/ROADMAP.md">نقشه راه</a>
 </footer>
+<script>
+(function () {
+  var framed;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+  if (framed) {
+    document.getElementById("frame-help").hidden = false;
+    var card = document.getElementById("qr-card");
+    if (card) card.hidden = true;
+  }
+  var button = document.getElementById("copy-url");
+  if (!button) return;
+  button.addEventListener("click", function () {
+    var input = document.getElementById("page-url");
+    var status = document.getElementById("copy-status");
+    var done = function () { status.textContent = "نشانی کپی شد. آن را در نوار نشانی یک زبانه تازه یا مرورگر گوشی بچسبانید."; };
+    var manual = function () { status.textContent = "نشانی انتخاب شد؛ آن را کپی کنید (Ctrl+C یا نگه داشتن انگشت)."; };
+    input.focus();
+    input.select();
+    input.setSelectionRange(0, input.value.length);
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    if (ok) { done(); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(input.value).then(done, manual);
+    else manual();
+  });
+})();
+</script>
 </body>
 </html>

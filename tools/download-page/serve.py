@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import http.server
-import shutil
 import sys
 import urllib.parse
 from pathlib import Path
@@ -35,6 +34,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def respond(self, head: bool) -> None:
         path = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path).lstrip("/")
+        # where the request comes from: a frame (preview), a tab or the download manager
+        self.log_message("from %s %s, %s", self.headers.get("Sec-Fetch-Dest", "-"), self.headers.get("Sec-Fetch-Mode", "-"),
+                         (self.headers.get("User-Agent") or "-")[:90])
         if path in ("", "index.html"):
             host = self.headers.get("X-Forwarded-Host") or self.headers.get("Host") or "localhost"
             proto = self.headers.get("X-Forwarded-Proto") or ("https" if host.endswith(".e2b.app") else "http")
@@ -70,9 +72,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if attachment:
             self.send_header("Content-Disposition", f'attachment; filename="{attachment}"')
         self.end_headers()
-        if not head:
+        if head:
+            return
+        sent = 0
+        try:
             with file.open("rb") as f:
-                shutil.copyfileobj(f, self.wfile, 64 * 1024)
+                while chunk := f.read(64 * 1024):
+                    self.wfile.write(chunk)
+                    sent += len(chunk)
+            self.log_message("sent %s completely (%d bytes)", file.name, sent)
+        except (BrokenPipeError, ConnectionResetError):
+            self.log_message("transfer of %s stopped by the browser after %d bytes", file.name, sent)
 
 
 def main() -> None:
