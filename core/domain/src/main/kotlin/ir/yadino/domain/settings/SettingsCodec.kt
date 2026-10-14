@@ -159,6 +159,10 @@ object SettingsCodec {
         Field("backup.keep", { it.driveBackupsToKeep.toString() }) { s, v ->
             v.toIntOrNull()?.let { s.copy(driveBackupsToKeep = it.coerceIn(1, 50)) } ?: s
         },
+        Field("backup.autoFolder", { it.autoFolderBackup.name }) { s, v -> enumOf<AutoBackupFrequency>(v)?.let { s.copy(autoFolderBackup = it) } ?: s },
+        Field("backup.folderKeep", { it.folderBackupsToKeep.toString() }) { s, v ->
+            v.toIntOrNull()?.let { s.copy(folderBackupsToKeep = it.coerceIn(1, 50)) } ?: s
+        },
         Field("advanced.errorLog", { it.errorLogEnabled.toString() }) { s, v -> bool(v)?.let { s.copy(errorLogEnabled = it) } ?: s },
     )
 

@@ -127,13 +127,15 @@ class GoogleDriveClientTest {
     @Test
     fun listParsesBackups() = runBlocking {
         val body = """{"files":[{"id":"f1","name":"yadino-backup-1.yadino.json","size":"2048","createdTime":"2026-10-14T08:00:00.000Z","appProperties":{"formatVersion":"1"}},
-            {"id":"f2","name":"old.json","createdTime":"2026-09-01T08:00:00Z"}]}"""
+            {"id":"f2","name":"old.json","createdTime":"2026-09-01T08:00:00Z"},
+            {"id":"f3","name":"yadino-backup-2.yadino.json","appProperties":{"formatVersion":"1","encrypted":"true"}}]}"""
         val t = FakeTransport { HttpTransport.Response(200, body) }
         val (r, files) = client(connectedTokens(), t).list()
         assertEquals(DriveResult.Success(), r)
-        assertEquals(listOf("f1", "f2"), files.map { it.id })
+        assertEquals(listOf("f1", "f2", "f3"), files.map { it.id })
         assertEquals(2048L, files[0].size)
         assertEquals(1, files[0].formatVersion)
+        assertEquals(listOf(false, false, true), files.map { it.encrypted })
         assertTrue(t.requests.single().url.contains("spaces=appDataFolder"))
     }
 

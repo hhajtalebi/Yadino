@@ -32,9 +32,10 @@ interface TokenStore {
 }
 
 /**
- * Small encrypted key/value store for OAuth tokens. Values are encrypted with an AES-GCM
- * key kept in the Android Keystore (never leaves secure hardware where available). The
- * file is excluded from Android Auto Backup (see res/xml/backup_rules.xml).
+ * Small encrypted key/value store for secrets (OAuth tokens and the optional backup
+ * password). Values are encrypted with an AES-GCM key kept in the Android Keystore (never
+ * leaves secure hardware where available). SharedPreferences are not part of Android Auto
+ * Backup (see res/xml/backup_rules.xml).
  */
 class SecureTokenStore(context: Context) : TokenStore {
     private val prefs: SharedPreferences = context.applicationContext.getSharedPreferences("secure_tokens", Context.MODE_PRIVATE)
@@ -125,10 +126,18 @@ sealed interface DriveResult {
     data object AccessRevoked : DriveResult
     data class Error(val kind: Kind, val code: Int = 0) : DriveResult
 
-    enum class Kind { FORBIDDEN, QUOTA, SERVER, INVALID_RESPONSE, AUTH_FAILED, STATE_MISMATCH, INVALID_BACKUP }
+    enum class Kind { FORBIDDEN, QUOTA, SERVER, INVALID_RESPONSE, AUTH_FAILED, STATE_MISMATCH, INVALID_BACKUP, ENCRYPTION_UNAVAILABLE }
 }
 
-data class DriveBackupEntry(val id: String, val name: String, val size: Long, val createdAt: Instant?, val formatVersion: Int?)
+data class DriveBackupEntry(
+    val id: String,
+    val name: String,
+    val size: Long,
+    val createdAt: Instant?,
+    val formatVersion: Int?,
+    /** Password protected ([ir.yadino.domain.backup.BackupCrypto]). */
+    val encrypted: Boolean = false,
+)
 
 /**
  * Google Drive backup over the Drive REST API v3 using OAuth 2.0 for installed apps
@@ -355,6 +364,7 @@ class GoogleDriveClient(
                 size = o.string("size")?.toLongOrNull() ?: 0,
                 createdAt = o.string("createdTime")?.let { runCatching { Instant.parse(it) }.getOrNull() },
                 formatVersion = o.obj("appProperties")?.string("formatVersion")?.toIntOrNull(),
+                encrypted = o.obj("appProperties")?.string("encrypted") == "true",
             )
         }
     }

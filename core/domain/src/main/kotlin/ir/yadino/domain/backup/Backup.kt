@@ -67,6 +67,8 @@ data class BackupInfo(
     val createdAt: Instant,
     val checksum: String,
     val counts: BackupCounts,
+    /** True when the file was password protected ([BackupCrypto]). */
+    val encrypted: Boolean = false,
 )
 
 data class BackupFile(val info: BackupInfo, val data: BackupData)
@@ -79,6 +81,10 @@ enum class BackupError {
     NEWER_FORMAT,
     CHECKSUM_MISMATCH,
     INVALID_CONTENT,
+    /** The file is encrypted and no password was supplied. */
+    PASSWORD_REQUIRED,
+    /** The password is wrong, or the encrypted file was modified. */
+    WRONG_PASSWORD,
 }
 
 sealed interface BackupReadResult {
@@ -130,6 +136,12 @@ object BackupCodec {
         } catch (e: Exception) {
             return BackupReadResult.Failure(BackupError.NOT_JSON, e.message)
         }
+        return decode(root)
+    }
+
+    /** Decodes an already parsed plain backup document. */
+    fun decode(root: JsonValue): BackupReadResult {
+        if (BackupCrypto.isEnvelope(root)) return BackupReadResult.Failure(BackupError.PASSWORD_REQUIRED)
         if (root !is JsonObject || root.string("format") != FORMAT) {
             return BackupReadResult.Failure(BackupError.NOT_A_YADINO_BACKUP)
         }

@@ -6,6 +6,7 @@ import ir.yadino.domain.TestData.NOW
 import ir.yadino.domain.TestData.j
 import ir.yadino.domain.TestData.task
 import ir.yadino.domain.model.AppSettings
+import ir.yadino.domain.model.AutoBackupFrequency
 import ir.yadino.domain.model.Category
 import ir.yadino.domain.model.DashboardConfig
 import ir.yadino.domain.model.DashboardSection
@@ -42,6 +43,7 @@ class SettingsAndValidationTest {
             themeMode = ThemeMode.DARK, palette = Palette.OCEAN, workDays = setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY),
             defaultTaskTime = null, defaultReminderOffsetMinutes = null, quietHoursEnabled = true,
             quietHoursStart = LocalTime.of(22, 15), lunarAdjustment = -1, defaultNoteColor = NoteColor.GOLD,
+            autoFolderBackup = AutoBackupFrequency.WEEKLY, folderBackupsToKeep = 5,
         )
         assertEquals(custom, SettingsCodec.decode(SettingsCodec.encode(custom)))
         assertEquals(AppSettings(), SettingsCodec.decode(SettingsCodec.encode(AppSettings())))

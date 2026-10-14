@@ -5,6 +5,7 @@ import ir.yadino.app.core.AppClock
 import ir.yadino.app.core.ErrorReporter
 import ir.yadino.app.data.backup.BackupManager
 import ir.yadino.app.data.backup.GoogleDriveClient
+import ir.yadino.app.data.backup.BackupPasswordStore
 import ir.yadino.app.data.backup.SecureTokenStore
 import ir.yadino.app.data.local.YadinoDatabase
 import ir.yadino.app.data.repository.CategoryRepository
@@ -85,7 +86,8 @@ class AppContainer(val app: Application, val appScope: CoroutineScope) {
     val habits by lazy { HabitRepository(database, clock, effects) }
     val categories by lazy { CategoryRepository(database, clock) }
     val data by lazy { DataRepository(database, { app.getDatabasePath(YadinoDatabase.NAME) }, clock, effects) }
-    val backup by lazy { BackupManager(app, data, settings, appState, clock, drive) }
+    val backupPasswords = BackupPasswordStore(tokenStore, appState)
+    val backup by lazy { BackupManager(app, data, settings, appState, clock, drive, backupPasswords) }
 
     /** Recomputes all alarms from the database (boot, time change, settings change, restore). */
     suspend fun rescheduleAllReminders() {

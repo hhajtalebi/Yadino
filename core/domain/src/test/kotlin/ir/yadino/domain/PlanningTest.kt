@@ -222,4 +222,24 @@ class PlanningTest {
         val next = ReminderCalculator.nextHabitTrigger(LocalTime.of(20, 0), { it.dayOfWeek == DayOfWeek.SATURDAY }, AppSettings(), zone, now)
         assertEquals(LocalDateTime.of(today.plusDays(3), LocalTime.of(20, 0)).atZone(zone).toInstant(), next)
     }
+
+    @Test
+    fun manualReorderStaysInsideGroupsAndSurvivesSorting() {
+        val today = j(1405, 7, 22)
+        val overdue = task("دیروز", j(1405, 7, 21))
+        val a = task("الف", today) { copy(sortOrder = 1) }
+        val b = task("ب", today) { copy(sortOrder = 2, startTime = LocalTime.of(8, 0)) }
+        val c = task("پ", today) { copy(sortOrder = 3) }
+        val done = task("انجام‌شده", today) { copy(status = TaskStatus.DONE, completedAt = NOW) }
+        assertTrue(TaskFilters.canReorderTogether(a, c))
+        assertFalse("other date", TaskFilters.canReorderTogether(a, overdue))
+        assertFalse("finished tasks stay below open ones", TaskFilters.canReorderTogether(a, done))
+
+        val shown = TaskFilters.sortForPlan(listOf(done, c, b, a, overdue))
+        assertEquals(listOf(overdue, a, b, c, done).map { it.id }, shown.map { it.id })
+        // drag "پ" to the top of today's group and persist the order like TaskRepository.reorder
+        val dragged = shown.toMutableList().apply { add(1, removeAt(3)) }
+        val persisted = dragged.mapIndexed { i, t -> t.copy(sortOrder = i + 1) }
+        assertEquals(dragged.map { it.id }, TaskFilters.sortForPlan(persisted.shuffled(java.util.Random(3))).map { it.id })
+    }
 }

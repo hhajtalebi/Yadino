@@ -71,6 +71,13 @@ object TaskFilters {
         }
     }
 
+    /**
+     * True when the user can put [a] and [b] in any order relative to each other. [sortForPlan]
+     * always keeps open tasks before finished ones and earlier dates first, so manual
+     * reordering (drag and drop, move up/down) only happens inside such a group.
+     */
+    fun canReorderTogether(a: Task, b: Task): Boolean = a.isOpen == b.isOpen && effectiveDate(a) == effectiveDate(b)
+
     /** Sort used by daily plans: open first, then date, explicit order, time, priority. */
     fun sortForPlan(tasks: List<Task>): List<Task> = tasks.sortedWith(
         compareBy<Task> { if (it.isOpen) 0 else 1 }

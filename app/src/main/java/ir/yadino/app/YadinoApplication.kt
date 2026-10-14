@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.work.Configuration
 import ir.yadino.app.core.ErrorReporter
 import ir.yadino.app.di.AppContainer
+import ir.yadino.app.work.WorkScheduler
 import ir.yadino.app.notifications.NotificationHelper
 import ir.yadino.domain.model.AppSettings
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -56,7 +57,7 @@ class YadinoApplication : Application(), Configuration.Provider {
             }
         }
         appScope.launch {
-            state.map { listOf(it.backupReminder, it.autoDriveBackup, it.driveBackupUnmeteredOnly) }
+            state.map { WorkScheduler.scheduleKey(it) }
                 .distinctUntilChanged().drop(1).collect { container.syncBackgroundWork() }
         }
         appScope.launch {

@@ -13,6 +13,7 @@ import ir.yadino.app.YadinoApplication
 import ir.yadino.app.core.ErrorReporter
 import ir.yadino.app.core.Formatter
 import ir.yadino.app.data.backup.DriveResult
+import ir.yadino.app.data.backup.FolderBackupResult
 import ir.yadino.app.notifications.NotificationHelper
 import ir.yadino.domain.model.AppSettings
 import ir.yadino.domain.model.AutoBackupFrequency
@@ -81,11 +82,45 @@ class DriveBackupWorker(context: Context, params: WorkerParameters) : CoroutineW
     }
 }
 
+/**
+ * Optional automatic backup into a folder the user picked (Storage Access Framework).
+ * When it stops working (folder removed, access revoked, password unavailable) the user is
+ * notified once; the notification is repeated only after a successful backup in between.
+ */
+class FolderBackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        val c = (applicationContext as YadinoApplication).container
+        val settings = c.settings.current()
+        val state = c.appState.current()
+        if (settings.autoFolderBackup == AutoBackupFrequency.OFF || state.backupFolderUri == null) return Result.success()
+        val r = c.backup.backupToFolder(automatic = true)
+        if (r is FolderBackupResult.Success) return Result.success()
+        if (!state.folderBackupFailing && settings.notificationsEnabled && settings.backupNotifications) {
+            val reason = applicationContext.getString(
+                when (r) {
+                    FolderBackupResult.AccessLost -> R.string.folder_backup_access_lost
+                    FolderBackupResult.PasswordUnavailable -> R.string.err_backup_password_unavailable
+                    else -> R.string.folder_backup_failed
+                },
+            )
+            NotificationHelper.showBackup(applicationContext, applicationContext.getString(R.string.folder_backup_failed_title), reason)
+        }
+        c.appState.setFolderBackupFailing(true)
+        return Result.success()
+    }
+}
+
 /** Keeps periodic work in sync with the settings. */
 object WorkScheduler {
     private const val MAINTENANCE = "yadino-maintenance"
     private const val BACKUP_REMINDER = "yadino-backup-reminder"
     private const val DRIVE_BACKUP = "yadino-drive-backup"
+    private const val FOLDER_BACKUP = "yadino-folder-backup"
+
+    /** Every setting read by [sync]; work is re-synced whenever this key changes. */
+    fun scheduleKey(settings: AppSettings): List<Any> = listOf(
+        settings.backupReminder, settings.autoDriveBackup, settings.driveBackupUnmeteredOnly, settings.autoFolderBackup,
+    )
 
     fun sync(context: Context, settings: AppSettings, zone: ZoneId) {
         val wm = WorkManager.getInstance(context)
@@ -119,6 +154,21 @@ object WorkScheduler {
             wm.enqueueUniquePeriodicWork(
                 DRIVE_BACKUP, ExistingPeriodicWorkPolicy.UPDATE,
                 PeriodicWorkRequestBuilder<DriveBackupWorker>(period, TimeUnit.DAYS)
+                    .setConstraints(constraints)
+                    .build(),
+            )
+        }
+        if (settings.autoFolderBackup == AutoBackupFrequency.OFF) {
+            wm.cancelUniqueWork(FOLDER_BACKUP)
+        } else {
+            val period = if (settings.autoFolderBackup == AutoBackupFrequency.DAILY) 1L else 7L
+            val constraints = Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .setRequiresStorageNotLow(true)
+                .build()
+            wm.enqueueUniquePeriodicWork(
+                FOLDER_BACKUP, ExistingPeriodicWorkPolicy.UPDATE,
+                PeriodicWorkRequestBuilder<FolderBackupWorker>(period, TimeUnit.DAYS)
                     .setConstraints(constraints)
                     .build(),
             )

@@ -118,6 +118,14 @@ data class BackupStatus(
     val driveAccount: String?,
     val onboardingDone: Boolean,
     val lastBackupReminderAt: Long?,
+    /** The user enabled password protection (the password itself lives in the Keystore-encrypted store). */
+    val encryptionEnabled: Boolean = false,
+    /** Folder for automatic backups (Storage Access Framework tree URI) and its display name. */
+    val backupFolderUri: String? = null,
+    val backupFolderName: String? = null,
+    val lastFolderBackupAt: Long? = null,
+    /** The last automatic folder backup failed (used to notify only once per failure streak). */
+    val folderBackupFailing: Boolean = false,
 )
 
 /** Non-preference application state (backup bookkeeping, onboarding, Drive account). */
@@ -131,12 +139,19 @@ class AppStateStore(context: Context) {
     private val driveAccount = stringPreferencesKey("drive.account")
     private val onboarding = stringPreferencesKey("onboarding.done")
     private val lastReminder = longPreferencesKey("backup.lastReminder")
+    private val encryption = stringPreferencesKey("backup.encryption")
+    private val folderUri = stringPreferencesKey("backup.folderUri")
+    private val folderName = stringPreferencesKey("backup.folderName")
+    private val lastFolder = longPreferencesKey("backup.lastFolder")
+    private val folderFailing = stringPreferencesKey("backup.folderFailing")
 
     val status: Flow<BackupStatus> = store.safeData().map { p ->
         BackupStatus(
             lastLocalBackupAt = p[lastLocal], lastDriveBackupAt = p[lastDrive], lastResult = p[lastResult],
             lastResultAt = p[lastResultAt], lastRestoredChecksum = p[lastRestored], driveAccount = p[driveAccount],
             onboardingDone = p[onboarding] == "1", lastBackupReminderAt = p[lastReminder],
+            encryptionEnabled = p[encryption] == "1", backupFolderUri = p[folderUri], backupFolderName = p[folderName],
+            lastFolderBackupAt = p[lastFolder], folderBackupFailing = p[folderFailing] == "1",
         )
     }.distinctUntilChanged()
 
@@ -149,6 +164,19 @@ class AppStateStore(context: Context) {
     suspend fun setDriveAccount(account: String?) = store.edit { if (account == null) it.remove(driveAccount) else it[driveAccount] = account }
     suspend fun setOnboardingDone() = store.edit { it[onboarding] = "1" }
     suspend fun recordBackupReminder(at: Long) = store.edit { it[lastReminder] = at }
+    suspend fun setEncryptionEnabled(enabled: Boolean) = store.edit { if (enabled) it[encryption] = "1" else it.remove(encryption) }
+    suspend fun setBackupFolder(uri: String?, name: String?) = store.edit { p ->
+        if (uri == null) {
+            p.remove(folderUri)
+            p.remove(folderName)
+        } else {
+            p[folderUri] = uri
+            if (name == null) p.remove(folderName) else p[folderName] = name
+        }
+        p.remove(folderFailing)
+    }
+    suspend fun recordFolderBackup(at: Long) = store.edit { it[lastFolder] = at; it[lastLocal] = at; it.remove(folderFailing) }
+    suspend fun setFolderBackupFailing(failing: Boolean) = store.edit { if (failing) it[folderFailing] = "1" else it.remove(folderFailing) }
 }
 
 /** Per-instance widget configuration. */

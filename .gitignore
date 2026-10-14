@@ -15,3 +15,7 @@ captures/
 !/tools/offline-build/debug.keystore
 .DS_Store
 .kotlin/
+
+# Python
+__pycache__/
+*.pyc

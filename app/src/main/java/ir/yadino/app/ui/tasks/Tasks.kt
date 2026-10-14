@@ -12,11 +12,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -31,6 +33,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -38,6 +41,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,10 +66,13 @@ import ir.yadino.app.ui.common.UiMessage
 import ir.yadino.app.ui.common.YadinoViewModel
 import ir.yadino.app.ui.common.todayFlow
 import ir.yadino.app.ui.components.ConfirmDialog
+import ir.yadino.app.ui.components.DraggableItem
 import ir.yadino.app.ui.components.EmptyState
 import ir.yadino.app.ui.components.JalaliDatePickerDialog
 import ir.yadino.app.ui.components.YadinoScaffold
 import ir.yadino.app.ui.components.YadinoTopBar
+import ir.yadino.app.ui.components.dragContainer
+import ir.yadino.app.ui.components.rememberDragDropState
 import ir.yadino.app.ui.navigation.LocalNavigator
 import ir.yadino.app.ui.navigation.Route
 import ir.yadino.domain.model.Category
@@ -151,6 +160,9 @@ class TasksViewModel(c: AppContainer, initial: TaskTab) : YadinoViewModel(c) {
         m.add(target, item)
         c.tasks.reorder(m)
     }
+
+    /** Persists the order produced by drag and drop. */
+    fun reorder(ordered: List<Task>) = launchSafe { c.tasks.reorder(ordered) }
 }
 
 private fun tabFromRoute(f: String?): TaskTab = TaskTab.entries.firstOrNull { it.name == f } ?: TaskTab.TODAY
@@ -177,11 +189,35 @@ fun TasksScreen(route: Route.Tasks) {
     val nav = LocalNavigator.current
     CollectMessages(vm.messages)
     var searching by rememberSaveable { mutableStateOf(false) }
-    var reorder by rememberSaveable { mutableStateOf(false) }
+    var reorderMode by rememberSaveable { mutableStateOf(false) }
+    // Manual order is defined for the whole day plan: not while searching or filtering by category.
+    val canReorder = state.tab == TaskTab.TODAY && state.query.isEmpty() && state.categoryId == null
+    val reorder = reorderMode && canReorder
     var categoryMenu by remember { mutableStateOf(false) }
     var menuFor by remember { mutableStateOf<Task?>(null) }
     var pickDateFor by remember { mutableStateOf<Task?>(null) }
     var confirmDelete by remember { mutableStateOf<Task?>(null) }
+    val listState = rememberLazyListState()
+    val haptics = LocalHapticFeedback.current
+    // Order shown while dragging and until the database reports the saved order.
+    var dragOrder by remember { mutableStateOf<List<Task>?>(null) }
+    val shown = if (reorder) dragOrder ?: state.tasks else state.tasks
+    val dragDrop = rememberDragDropState(
+        listState,
+        onMove = { from, to ->
+            val base = (dragOrder ?: state.tasks).toMutableList()
+            // tasks only move inside their group (same date, open or finished), see TaskFilters.sortForPlan
+            val allowed = from in base.indices && to in base.indices && TaskFilters.canReorderTogether(base[from], base[to])
+            if (allowed) {
+                base.add(to, base.removeAt(from))
+                dragOrder = base
+            }
+            allowed
+        },
+        onDragFinished = { dragOrder?.let { vm.reorder(it) } },
+    )
+    LaunchedEffect(state.tasks) { if (dragDrop.draggingItemIndex == null) dragOrder = null }
+    LaunchedEffect(reorder) { if (!reorder) dragOrder = null }
 
     YadinoScaffold(
         topBar = {
@@ -209,8 +245,8 @@ fun TasksScreen(route: Route.Tasks) {
                             }
                         }
                     }
-                    if (state.tab == TaskTab.TODAY) {
-                        IconButton(onClick = { reorder = !reorder }) {
+                    if (canReorder) {
+                        IconButton(onClick = { reorderMode = !reorderMode }) {
                             Icon(Icons.Default.SwapVert, stringResource(R.string.reorder), tint = if (reorder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                         }
                     }
@@ -226,27 +262,50 @@ fun TasksScreen(route: Route.Tasks) {
         Column(Modifier.fillMaxSize().padding(padding)) {
             LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(TaskTab.entries) { t ->
-                    FilterChip(selected = state.tab == t, onClick = { vm.setTab(t); if (t != TaskTab.TODAY) reorder = false }, label = { Text(tabLabel(t)) })
+                    FilterChip(selected = state.tab == t, onClick = { vm.setTab(t); if (t != TaskTab.TODAY) reorderMode = false }, label = { Text(tabLabel(t)) })
                 }
             }
             if (state.loaded && state.tasks.isEmpty()) {
                 EmptyState(Icons.Default.TaskAlt, stringResource(R.string.tasks_empty_title), stringResource(R.string.tasks_empty_message))
             }
-            LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 8.dp, end = 8.dp, bottom = 96.dp)) {
-                itemsIndexed(state.tasks, key = { _, t -> t.id }) { index, task ->
+            if (reorder && shown.size > 1) {
+                Text(
+                    stringResource(R.string.reorder_hint), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+            LazyColumn(
+                Modifier.weight(1f).then(
+                    if (reorder) Modifier.dragContainer(dragDrop, onStart = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) }) else Modifier,
+                ),
+                state = listState,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 8.dp, end = 8.dp, bottom = 96.dp),
+            ) {
+                itemsIndexed(shown, key = { _, t -> t.id }) { index, task ->
                     val cat = state.categories.firstOrNull { it.id == task.categoryId }
                     Box {
                         if (reorder) {
-                            TaskRow(
-                                task = task, today = state.today, onToggle = { vm.toggle(task) }, onClick = {}, category = cat,
-                                subtasks = state.subtasks[task.id],
-                                trailing = {
-                                    Row {
-                                        IconButton(onClick = { vm.move(state.tasks, index, -1) }, enabled = index > 0) { Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.move_up)) }
-                                        IconButton(onClick = { vm.move(state.tasks, index, 1) }, enabled = index < state.tasks.lastIndex) { Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.move_down)) }
-                                    }
-                                },
-                            )
+                            DraggableItem(dragDrop, index) { dragging ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.background,
+                                    shadowElevation = if (dragging) 6.dp else 0.dp,
+                                    shape = MaterialTheme.shapes.medium,
+                                ) {
+                                    TaskRow(
+                                        task = task, today = state.today, onToggle = { vm.toggle(task) }, onClick = {}, category = cat,
+                                        subtasks = state.subtasks[task.id],
+                                        trailing = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                val canUp = index > 0 && TaskFilters.canReorderTogether(shown[index - 1], task)
+                                                val canDown = index < shown.lastIndex && TaskFilters.canReorderTogether(shown[index + 1], task)
+                                                IconButton(onClick = { vm.move(shown, index, -1) }, enabled = canUp) { Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.move_up)) }
+                                                IconButton(onClick = { vm.move(shown, index, 1) }, enabled = canDown) { Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.move_down)) }
+                                                Icon(Icons.Default.DragHandle, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 8.dp))
+                                            }
+                                        },
+                                    )
+                                }
+                            }
                         } else {
                             SwipeableTask(task, onComplete = { vm.toggle(task) }, onArchive = { vm.archive(task, !task.isArchived) }) {
                                 TaskRow(

@@ -108,6 +108,9 @@ data class AppSettings(
     val autoDriveBackup: AutoBackupFrequency = AutoBackupFrequency.OFF,
     val driveBackupUnmeteredOnly: Boolean = true,
     val driveBackupsToKeep: Int = 10,
+    /** Automatic backup into a folder chosen by the user (Storage Access Framework). */
+    val autoFolderBackup: AutoBackupFrequency = AutoBackupFrequency.OFF,
+    val folderBackupsToKeep: Int = 10,
     // --- advanced -----------------------------------------------------------------------------
     val errorLogEnabled: Boolean = true,
 ) {
