@@ -126,7 +126,7 @@ object Json {
                 '\b' -> sb.append("\\b")
                 '\u000C' -> sb.append("\\f")
                 else -> if (c < ' ' || c == '\u2028' || c == '\u2029') {
-                    sb.append("\\u").append(String.format("%04x", c.code))
+                    sb.append("\\u").append(String.format(java.util.Locale.ROOT, "%04x", c.code))
                 } else sb.append(c)
             }
         }

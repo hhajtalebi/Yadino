@@ -157,12 +157,12 @@ object BackupCodec {
 
     fun sha256(text: String): String {
         val md = MessageDigest.getInstance("SHA-256")
-        return md.digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+        return md.digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { String.format(java.util.Locale.ROOT, "%02x", it) }
     }
 
     // ---------------------------------------------------------------- encoding
     private fun d(v: LocalDate?): Any? = v?.toString()
-    private fun t(v: LocalTime?): Any? = v?.let { "%02d:%02d".format(it.hour, it.minute) }
+    private fun t(v: LocalTime?): Any? = v?.let { String.format(java.util.Locale.ROOT, "%02d:%02d", it.hour, it.minute) }
     private fun i(v: Instant?): Any? = v?.toString()
 
     private fun encodeData(data: BackupData): JsonObject = Json.toJsonValue(linkedMapOf(

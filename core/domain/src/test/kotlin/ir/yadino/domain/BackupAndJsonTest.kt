@@ -215,3 +215,26 @@ class BackupAndJsonTest {
         assertEquals(null, clean.notes.single().goalId)
     }
 }
+
+class BackupLocaleIndependenceTest {
+    @org.junit.Test
+    fun backupIsIdenticalUnderPersianDefaultLocale() {
+        val original = java.util.Locale.getDefault()
+        try {
+            val data = ir.yadino.domain.backup.BackupData(
+                tasks = listOf(TestData.task("زمان‌دار", TestData.j(1405, 7, 22)) { copy(startTime = java.time.LocalTime.of(9, 5)) }),
+            )
+            java.util.Locale.setDefault(java.util.Locale.US)
+            val latin = ir.yadino.domain.backup.BackupCodec.encode(data, "1.0.0", TestData.NOW)
+            java.util.Locale.setDefault(java.util.Locale("fa", "IR"))
+            val persian = ir.yadino.domain.backup.BackupCodec.encode(data, "1.0.0", TestData.NOW)
+            org.junit.Assert.assertEquals(latin, persian)
+            org.junit.Assert.assertTrue(persian.contains("\"09:05\""))
+            val decoded = ir.yadino.domain.backup.BackupCodec.decode(persian)
+            org.junit.Assert.assertTrue(decoded is ir.yadino.domain.backup.BackupReadResult.Success)
+            org.junit.Assert.assertEquals("1405/07/22", ir.yadino.calendar.JalaliDate.of(1405, 7, 22).toString())
+        } finally {
+            java.util.Locale.setDefault(original)
+        }
+    }
+}

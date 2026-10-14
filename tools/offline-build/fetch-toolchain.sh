@@ -49,7 +49,9 @@ fetch m2tools msft-mirror-aosp/platform.prebuilts.tools main \
   $P/com/google/guava/guava/32.1.1-jre/guava-32.1.1-jre.jar \
   $P/com/google/guava/guava/listenablefuture/1.0/ \
   $P/commons-codec/commons-codec/1.10/commons-codec-1.10.jar \
-  $P/org/xerial/sqlite-jdbc/3.28.0/sqlite-jdbc-3.28.0.jar
+  $P/org/xerial/sqlite-jdbc/3.28.0/sqlite-jdbc-3.28.0.jar \
+  $P/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.0.21/ \
+  $P/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.0.21/
 
 # ---- Upstream sources (pinned tags) ----------------------------------------
 fetch src-coroutines Kotlin/kotlinx.coroutines 1.9.0 \
@@ -70,6 +72,10 @@ fetch src-junit msft-mirror-aosp/platform.external.junit main '/src/main/java/'
 # AOSP's copy ships the generated CoreMatchers.java
 fetch src-hamcrest msft-mirror-aosp/platform.external.hamcrest main '/hamcrest-core/src/main/java/'
 fetch src-jspecify jspecify/jspecify v1.0.0 '/src/main/java/'
-fetch src-kotlin-metadata JetBrains/kotlin v2.0.21 '/libraries/kotlinx-metadata/src/' '/libraries/kotlinx-metadata/jvm/src/'
+fetch src-kotlin-metadata JetBrains/kotlin v2.0.21 '/libraries/kotlinx-metadata/src/' '/libraries/kotlinx-metadata/jvm/src/' '/libraries/kotlinx-metadata/jvm/resources/'
+
+# kotlinx.serialization is needed by Room's schema export (annotation processor)
+fetch src-serialization Kotlin/kotlinx.serialization v1.7.3 \
+  '/core/commonMain/src/' '/core/jvmMain/src/' '/formats/json/commonMain/src/' '/formats/json/jvmMain/src/'
 
 echo "Toolchain ready in $TC"

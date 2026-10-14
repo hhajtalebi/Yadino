@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ backup / device-transfer rules. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="yadino.db" />
+        <include domain="file" path="datastore/" />
+        <exclude domain="file" path="datastore/secure_tokens.preferences_pb" />
+        <exclude domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="yadino.db" />
+        <include domain="file" path="datastore/" />
+        <exclude domain="file" path="datastore/secure_tokens.preferences_pb" />
+        <exclude domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

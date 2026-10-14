@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="rtl">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg"
+        android:importantForAccessibility="no" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="10dp">
+    <TextView
+        android:id="@+id/w_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="۳"
+        android:textColor="@color/widget_accent"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:textDirection="rtl"
+        android:includeFontPadding="false" />
+    <TextView
+        android:id="@+id/w_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="کار امروز"
+        android:textColor="@color/widget_text"
+        android:textSize="13sp"
+        android:textStyle="normal"
+        android:textDirection="rtl" />
+    <TextView
+        android:id="@+id/w_next"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text=""
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="12sp"
+        android:textStyle="normal"
+        android:textDirection="rtl"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:gravity="center" />
+    </LinearLayout>
+</FrameLayout>

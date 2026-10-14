@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup (API < 31). Yadino has its own explicit backup feature;
+     tokens and caches are never included. -->
+<full-backup-content>
+    <include domain="database" path="yadino.db" />
+    <include domain="file" path="datastore/" />
+    <exclude domain="file" path="datastore/secure_tokens.preferences_pb" />
+    <exclude domain="sharedpref" path="." />
+</full-backup-content>

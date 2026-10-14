@@ -130,6 +130,20 @@ if [ ! -f "$DEPS/kotlin-metadata-jvm.jar" ]; then
   D="$WORK/kotlin-metadata-jvm-bundle"; rm -rf "$D"; mkdir -p "$D"
   (cd "$D" && unzip -q -o "$DEPS/kotlin-metadata-jvm-raw.jar" \
      && unzip -q -o "$KOTLIN_HOME/lib/kotlin-compiler.jar" 'org/jetbrains/kotlin/metadata/*' 'org/jetbrains/kotlin/protobuf/*' \
+     && cp -r "$KM/jvm/resources/META-INF" . \
      && jar cf "$DEPS/kotlin-metadata-jvm.jar" .)
 fi
+# --- kotlinx.serialization (core + json) -----------------------------------------------
+S="$TC/src-serialization"
+SER_PLUGIN="$KOTLIN_HOME/lib/kotlinx-serialization-compiler-plugin.jar"
+SOPT=(-Xplugin="$SER_PLUGIN" -opt-in=kotlinx.serialization.ExperimentalSerializationApi
+      -opt-in=kotlinx.serialization.InternalSerializationApi -opt-in=kotlin.RequiresOptIn
+      -opt-in=kotlin.ExperimentalMultiplatform -Xsuppress-version-warnings)
+mpp_args "$WORK/serialization-core.args" "common=$S/core/commonMain/src" "jvm=$S/core/jvmMain/src"
+kt kotlinx-serialization-core "" "${SOPT[@]}" @"$WORK/serialization-core.args"
+mpp_args "$WORK/serialization-json.args" "common=$S/formats/json/commonMain/src" "jvm=$S/formats/json/jvmMain/src"
+kt kotlinx-serialization-json "$DEPS/kotlinx-serialization-core.jar:$KOTLIN_HOME/lib/annotations-13.0.jar" "${SOPT[@]}" \
+   -opt-in=kotlinx.serialization.json.internal.JsonFriendModuleApi \
+   -opt-in=kotlinx.serialization.internal.CoreFriendModuleApi @"$WORK/serialization-json.args"
+
 echo "deps ready:"; ls -la "$DEPS"

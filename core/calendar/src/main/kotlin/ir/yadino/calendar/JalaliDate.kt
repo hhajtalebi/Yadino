@@ -93,7 +93,7 @@ class JalaliDate private constructor(
 
     /** ISO-like representation, e.g. `1403/12/30` (Latin digits). */
     override fun toString(): String =
-        "%04d/%02d/%02d".format(year, month, day)
+        String.format(java.util.Locale.ROOT, "%04d/%02d/%02d", year, month, day)
 
     companion object {
         /** Creates a date, throwing [IllegalArgumentException] for invalid input. */

@@ -108,12 +108,12 @@ def log(msg):
     print(f"\033[1;36m▶ {msg}\033[0m", flush=True)
 
 
-def run(cmd, cwd=None, quiet=False, check=True):
+def run(cmd, cwd=None, quiet=False, check=True, env=None):
     cmd = [str(c) for c in cmd]
     if not quiet:
         shown = " ".join(cmd)
         print("  $ " + (shown if len(shown) < 400 else shown[:400] + " …"), flush=True)
-    res = subprocess.run(cmd, cwd=cwd, env=ENV, text=True, capture_output=True, stdin=subprocess.DEVNULL)
+    res = subprocess.run(cmd, cwd=cwd, env=env or ENV, text=True, capture_output=True, stdin=subprocess.DEVNULL)
     out = (res.stdout or "") + (res.stderr or "")
     if res.returncode != 0 and check:
         print(out)
@@ -153,7 +153,16 @@ def cached(name, inputs, extra, fn):
     return True
 
 
-def kotlinc(module, srcs, classpath, out_dir, extra=()):
+EMBEDDABLE_CP = [
+    M2_TOOLS / "org/jetbrains/kotlin/kotlin-compiler-embeddable/2.0.21/kotlin-compiler-embeddable-2.0.21.jar",
+    M2_TOOLS / "org/jetbrains/kotlin/kotlin-daemon-embeddable/2.0.21/kotlin-daemon-embeddable-2.0.21.jar",
+    KOTLIN_HOME / "lib" / "kotlin-stdlib.jar", KOTLIN_HOME / "lib" / "kotlin-reflect.jar",
+    KOTLIN_HOME / "lib" / "kotlin-script-runtime.jar", KOTLIN_HOME / "lib" / "trove4j.jar",
+    KOTLIN_HOME / "lib" / "kotlinx-coroutines-core-jvm.jar", KOTLIN_HOME / "lib" / "annotations-13.0.jar",
+]
+
+
+def kotlinc(module, srcs, classpath, out_dir, extra=(), embeddable=False):
     out_dir = Path(out_dir)
     if out_dir.exists():
         shutil.rmtree(out_dir)
@@ -171,9 +180,19 @@ def kotlinc(module, srcs, classpath, out_dir, extra=()):
     args += [str(s) for s in srcs]
     argfile.write_text("\n".join(f'"{a}"' if " " in a else a for a in args))
     t = time.time()
-    out = run([KOTLIN_HOME / "bin" / "kotlinc", f"@{argfile}"], quiet=True, check=False)
+    if embeddable:
+        # The Compose compiler plugin shipped with AOSP's kotlinc targets the
+        # *embeddable* compiler (relocated IntelliJ packages).
+        cmd = [JAVA_HOME / "bin" / "java", "-Xmx2800m", "-Xss8m", "-XX:+UseParallelGC",
+               "-cp", os.pathsep.join(map(str, EMBEDDABLE_CP)),
+               "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler", f"@{argfile}"]
+    else:
+        cmd = [KOTLIN_HOME / "bin" / "kotlinc", f"@{argfile}"]
+    out = run(cmd, quiet=True, check=False)
     warnings = [l for l in out.splitlines() if "warning:" in l]
     errors = [l for l in out.splitlines() if "error:" in l or "exception:" in l.lower()]
+    (OUT / "logs").mkdir(parents=True, exist_ok=True)
+    (OUT / "logs" / f"{module}.kotlinc.log").write_text(out)
     if errors or not any(out_dir.rglob("*.class")):
         print(out[-20000:])
         raise SystemExit(f"kotlinc failed for {module}")
@@ -576,6 +595,8 @@ def build_apk(variant="debug"):
             "--version-code", VERSION_CODE, "--version-name", VERSION_NAME,
             "--auto-add-overlay", "--no-version-vectors",
             "--extra-packages", ":".join(packages)]
+    if (APP_MAIN / "assets").exists():
+        link += ["-A", APP_MAIN / "assets"]
     for f in flats:
         link += ["-R", f]
     link += ["-R", app_flat]
@@ -606,6 +627,7 @@ def build_apk(variant="debug"):
         DEPS / "javapoet.jar", DEPS / "kotlinpoet.jar", DEPS / "kotlinpoet-javapoet.jar",
         DEPS / "auto-common.jar", DEPS / "auto-value-annotations.jar",
         DEPS / "symbol-processing-api.jar", DEPS / "kotlin-metadata-jvm.jar", DEPS / "jspecify.jar",
+        DEPS / "kotlinx-serialization-core.jar", DEPS / "kotlinx-serialization-json.jar",
         STDLIB, KOTLIN_HOME / "lib" / "kotlin-reflect.jar", KOTLIN_HOME / "lib" / "annotations-13.0.jar",
     ]
     room_inputs = [s for s in kt_src if "/data/local/" in s.as_posix()]
@@ -622,11 +644,10 @@ def build_apk(variant="debug"):
             f"-Kapt-sources={kapt_dir / 'sources'}",
             f"-Kapt-classes={kapt_dir / 'classes'}",
             f"-Kapt-stubs={kapt_dir / 'stubs'}",
-            "-Kapt-classpath=" + os.pathsep.join(map(str, room_cp)),
+        ] + [f"-Kapt-classpath={p}" for p in room_cp] + [
             "-Kapt-processors=androidx.room.RoomProcessor",
+            # the kapt CLI accepts a single -Kapt-option only
             f"-Kapt-option:room.schemaLocation={schema_dir}",
-            "-Kapt-option:room.incremental=false",
-            "-Kapt-option:room.generateKotlin=false",
             "-Kapt-correct-error-types=true",
             "-Kapt-map-diagnostic-locations=true",
             "-jvm-target", "17", "-no-stdlib", "-no-reflect", "-Xjvm-default=all",
@@ -656,8 +677,8 @@ def build_apk(variant="debug"):
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                 "-opt-in=kotlinx.coroutines.FlowPreview",
                 "-Xjava-source-roots=" + ",".join(map(str, [p for p in (APP_MAIN / "java", kapt_gen) if p.exists()]))]
-    cached("app-kotlin", kt_inputs, "v3" + " ".join(kt_extra), lambda: kotlinc(
-        "app", kt_src + java_src + kapt_java, compile_cp, kt_classes, kt_extra))
+    cached("app-kotlin", kt_inputs, "v4" + " ".join(kt_extra), lambda: kotlinc(
+        "app", kt_src + java_src + kapt_java, compile_cp, kt_classes, kt_extra, embeddable=True))
 
     # 5. javac (Room generated code, hand written Java) -----------------------------------
     j_classes = OUT / "app" / "classes-java"
@@ -741,15 +762,53 @@ def build_apk(variant="debug"):
     run([ZIPALIGN, "-p", "-f", "4", unsigned, aligned], quiet=True)
     keystore, ks_pass, alias, key_pass = signing_config(debug)
     final = OUT / f"yadino-{VERSION_NAME}-{variant}.apk"
+    # apksigner works without the (optional) Conscrypt native provider
+    signer_env = {k: v for k, v in ENV.items() if k != "LD_LIBRARY_PATH"}
     run([JAVA_HOME / "bin" / "java", "-jar", APKSIGNER, "sign", "--ks", keystore, "--ks-pass", f"pass:{ks_pass}",
          "--ks-key-alias", alias, "--key-pass", f"pass:{key_pass}", "--min-sdk-version", MIN_SDK,
-         "--out", final, aligned], quiet=True)
-    verify = run([JAVA_HOME / "bin" / "java", "-jar", APKSIGNER, "verify", "--verbose", "--print-certs", final], quiet=True)
+         "--out", final, aligned], quiet=True, env=signer_env)
+    verify = run([JAVA_HOME / "bin" / "java", "-jar", APKSIGNER, "verify", "--verbose", "--print-certs", final],
+                 quiet=True, env=signer_env)
     print("  " + "\n  ".join(l for l in verify.splitlines() if l.startswith("Verified using") or "certificate SHA-256" in l))
     badging = run([AAPT2, "dump", "badging", final], quiet=True)
     (OUT / "logs" / f"badging-{variant}.txt").write_text(badging)
     print(f"  ✅ {final.relative_to(ROOT)} ({final.stat().st_size / 1024 / 1024:.1f} MB)")
     return final
+
+
+def link_check():
+    """Shrinks the debug inputs to class files with R8 and verifies every referenced
+    method/field exists at runtime (catches binary incompatibilities between libraries)."""
+    log("Binary compatibility (link) check")
+    w = OUT / "app" / "debug"
+    lc_dir = OUT / "linkcheck"
+    lc_dir.mkdir(parents=True, exist_ok=True)
+    checker = lc_dir / "classes"
+    src = HERE / "linkcheck" / "LinkCheck.kt"
+    cached("linkcheck-tool", [src], "v1", lambda: kotlinc("linkcheck", [src], [KOTLIN_HOME / "lib" / "kotlin-compiler.jar"], checker))
+    libs = libraries()
+    lib_jars = [j for l in libs for j in l.jars]
+    rules = [w / "aapt-rules.pro", APP / "proguard-rules.pro", HERE / "r8-extra.pro", w / "debug-rules.pro"]
+    rules += [l.proguard for l in libs if l.proguard] + sorted((w / "jar-rules").glob("*.pro"))
+    out_jar = lc_dir / "shrunk-classes.jar"
+    if out_jar.exists():
+        out_jar.unlink()
+    lc_rules = lc_dir / "linkcheck.pro"
+    # class-file output keeps invokedynamic (desugared only when dexing)
+    lc_rules.write_text("-dontwarn java.lang.invoke.**\n")
+    rules.append(lc_rules)
+    cmd = [JAVA_HOME / "bin" / "java", "-Xmx3g", "-cp", R8, "com.android.tools.r8.R8", "--classfile", "--debug",
+           "--lib", ANDROID_JAR, "--output", out_jar]
+    for r in rules:
+        if r and Path(r).exists():
+            cmd += ["--pg-conf", r]
+    cmd += [w / "app-classes.jar", w / "r.jar", CAL_JAR, DOM_JAR] + lib_jars
+    run(cmd, quiet=True)
+    out = run([JAVA_HOME / "bin" / "java", "-cp", os.pathsep.join(map(str, [checker, STDLIB, KOTLIN_HOME / "lib" / "kotlin-compiler.jar"])),
+               "LinkCheckKt", out_jar, ANDROID_JAR], quiet=True)
+    (OUT / "logs" / "linkcheck.txt").write_text(out)
+    print("  " + "\n  ".join(out.splitlines()[:40]))
+    return out
 
 
 def signing_config(debug):
@@ -771,7 +830,7 @@ def signing_config(debug):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("target", choices=["jvm", "test", "apk", "release", "all", "deps"], nargs="?", default="all")
+    parser.add_argument("target", choices=["jvm", "test", "apk", "release", "all", "deps", "linkcheck"], nargs="?", default="all")
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     if args.target == "deps":
@@ -786,6 +845,8 @@ def main():
         build_apk("debug")
     if args.target in ("release",):
         build_apk("release")
+    if args.target in ("linkcheck",):
+        link_check()
 
 
 if __name__ == "__main__":
