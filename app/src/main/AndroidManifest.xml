@@ -86,9 +86,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:path="/oauth2redirect"
-                    android:scheme="${driveRedirectScheme}" />
+                <!-- the scheme is unique to the OAuth client (reverse client id) -->
+                <data android:scheme="${driveRedirectScheme}" />
             </intent-filter>
         </activity>
 

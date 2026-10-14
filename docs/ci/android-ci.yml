@@ -1,5 +1,6 @@
-# Yadino – GitHub Actions workflow (to be installed as .github/workflows/android-ci.yml)
-# Builds the app, runs JVM unit tests and Lint, and runs instrumented tests on emulators.
+# Yadino – GitHub Actions workflow (install as .github/workflows/android-ci.yml)
+# Builds debug and release APKs with Gradle, runs JVM unit tests and Lint, and runs the
+# instrumented tests (including an end-to-end smoke test of every screen) on emulators.
 name: Android CI
 
 on:
@@ -27,14 +28,25 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests, debug APK and lint
-        run: ./gradlew test :app:assembleDebug :app:lintDebug --stacktrace
+      - name: JVM unit tests
+        run: ./gradlew test --stacktrace
 
-      - name: Upload debug APK
+      - name: Debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Release APK (R8, unsigned unless signing secrets are configured)
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Lint
+        run: ./gradlew :app:lintDebug --stacktrace
+
+      - name: Upload APKs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: yadino-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: yadino-apks
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: ignore
 
       - name: Upload test and lint reports
         if: always()
@@ -43,7 +55,9 @@ jobs:
           name: reports
           path: |
             **/build/reports/tests/
-            app/build/reports/lint-results-debug.html
+            **/build/test-results/
+            app/build/reports/lint-results-debug.*
+          if-no-files-found: ignore
 
   instrumented:
     name: Instrumented tests (API ${{ matrix.api-level }})
@@ -84,4 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: instrumented-reports-api-${{ matrix.api-level }}
-          path: app/build/reports/androidTests/
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
