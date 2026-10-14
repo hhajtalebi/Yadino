@@ -319,12 +319,12 @@ def render(page_url: str = PAGES_URL, ref: str | None = None, root: Path = ROOT,
         for f in info.others
     )
     direct = page_url.rstrip("/") + "/release/" + primary.name
-    # the same file attached to the GitHub release of this version: a permanent address
-    released = f"{RELEASES_URL}/download/v{info.version}/{primary.name}"
+    # the same file under the git tag of this version: a permanent address
+    released = f"https://github.com/{REPO}/raw/v{info.version}/release/{primary.name}"
     download = (f'<a class="btn" href="release/{esc(primary.name)}" download>دانلود یادینو<small>فایل APK · {primary.size_text}</small></a>'
                 f'<div class="alt">اگر دانلود شروع نشد (مثلاً وقتی صفحه داخل یک قاب نمایش داده می‌شود)، این لینک را در یک زبانه تازه یا روی گوشی باز کنید:'
                 f'<br><a class="mono" href="{esc(direct)}" target="_blank" rel="noopener">{esc(direct)}</a>'
-                f'<br>همین فایل در <a href="{esc(released)}" target="_blank" rel="noopener">انتشار نسخه {version_fa} در گیت‌هاب</a> هم هست.</div>')
+                f'<br>نشانی دائمی همین فایل در گیت‌هاب (نسخه {version_fa}): <a class="mono" href="{esc(released)}" target="_blank" rel="noopener">{esc(released)}</a></div>')
     payload = script = ""
     if standalone:
         apk = (root / "release" / primary.name).read_bytes()
