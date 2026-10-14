@@ -27,11 +27,13 @@ import ir.yadino.calendar.WeekMath
 import ir.yadino.domain.goals.GoalProgressCalculator
 import ir.yadino.domain.model.AppSettings
 import ir.yadino.domain.model.GoalStatus
+import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteFilters
 import ir.yadino.domain.model.OverdueBehavior
 import ir.yadino.domain.model.Task
 import ir.yadino.domain.model.TaskKind
 import ir.yadino.domain.notes.Checklist
+import ir.yadino.domain.notes.ChecklistRow
 import ir.yadino.domain.planning.TaskFilters
 import ir.yadino.domain.planning.TaskListFilter
 import kotlinx.coroutines.runBlocking
@@ -283,7 +285,7 @@ private class TaskListFactory(private val context: Context, private val widgetId
 // =============================================================================================
 // 4. Quick note widget
 // =============================================================================================
-class QuickNoteWidgetProvider : YadinoWidgetProvider() {
+class QuickNoteWidgetProvider : ListWidgetProvider() {
     override suspend fun render(context: Context, app: YadinoApplication, widgetId: Int, options: Bundle?): RemoteViews {
         val c = app.container
         val config = c.widgetConfigs.get(widgetId)
@@ -291,8 +293,7 @@ class QuickNoteWidgetProvider : YadinoWidgetProvider() {
         val fmt = Formatter(settings)
         val p = palette(context, config)
         val s = config.textScale
-        val note = if (config.content.isNotBlank()) c.notes.get(config.content) else null
-        val shown = note?.takeIf { !it.isArchived } ?: c.notes.getRecent(1).firstOrNull()
+        val shown = NoteWidgetData.shownNote(app, config)
         val size = widgetSize(options)
         val v = RemoteViews(context.packageName, if (size == WidgetSize.SMALL) R.layout.widget_note_small else R.layout.widget_note)
         v.applyBackground(p)
@@ -311,16 +312,118 @@ class QuickNoteWidgetProvider : YadinoWidgetProvider() {
             val card = NoteFilters.card(shown)
             v.text(R.id.w_title, card.title?.ifBlank { null } ?: context.getString(R.string.untitled_note), p.text, 15f, s, p)
             if (size != WidgetSize.SMALL) {
-                v.text(R.id.w_content, Checklist.displayText(card.body).take(600), p.secondary, 13f, s, p)
                 val updated = fmt.relativeDay(shown.updatedAt.atZone(c.clock.zone()).toLocalDate(), c.clock.today())
                 val meta = Checklist.progress(shown.content)?.let { (done, total) ->
                     context.getString(R.string.checklist_progress, fmt.number(done), fmt.number(total)) + " · " + updated
                 } ?: updated
                 v.text(R.id.w_meta, meta, p.secondary, 12f, s, p)
+                if (Checklist.hasItems(shown.content)) {
+                    // the items can be checked right on the home screen
+                    v.setViewVisibility(R.id.w_content, View.GONE)
+                    v.setViewVisibility(R.id.widget_list, View.VISIBLE)
+                    val serviceIntent = Intent(context, NoteChecklistWidgetService::class.java).apply {
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                        data = Uri.parse("yadino-widget://note/$widgetId")
+                    }
+                    @Suppress("DEPRECATION")
+                    v.setRemoteAdapter(R.id.widget_list, serviceIntent)
+                    v.setPendingIntentTemplate(
+                        R.id.widget_list,
+                        PendingIntent.getActivity(
+                            context, widgetId * 100 + 3,
+                            Intent(context, WidgetItemActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK },
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+                        ),
+                    )
+                } else {
+                    v.setViewVisibility(R.id.widget_list, View.GONE)
+                    v.setViewVisibility(R.id.w_content, View.VISIBLE)
+                    v.text(R.id.w_content, Checklist.displayText(card.body).take(600), p.secondary, 13f, s, p)
+                }
             }
             v.setOnClickPendingIntent(R.id.w_body, openApp(context, Route.NoteEditor(shown.id), widgetId * 100 + 2))
         }
         return v
+    }
+}
+
+/** The note a quick-note widget shows: the configured one, otherwise the most recent. */
+object NoteWidgetData {
+    suspend fun shownNote(app: YadinoApplication, config: WidgetConfig): Note? {
+        val c = app.container
+        val note = if (config.content.isNotBlank()) c.notes.get(config.content) else null
+        return note?.takeIf { !it.isArchived } ?: c.notes.getRecent(1).firstOrNull()
+    }
+}
+
+class NoteChecklistWidgetService : RemoteViewsService() {
+    override fun onGetViewFactory(intent: Intent): RemoteViewsFactory =
+        NoteChecklistFactory(applicationContext, intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID))
+}
+
+/** Paragraphs and checklist items of the shown note; tapping an item checks it in the database. */
+private class NoteChecklistFactory(private val context: Context, private val widgetId: Int) : RemoteViewsService.RemoteViewsFactory {
+    private var note: Note? = null
+    private var rows: List<ChecklistRow> = emptyList()
+    private var config = WidgetConfig()
+
+    override fun onCreate() = Unit
+
+    override fun onDataSetChanged() {
+        val app = context.applicationContext as YadinoApplication
+        runBlocking {
+            config = app.container.widgetConfigs.get(widgetId)
+            note = NoteWidgetData.shownNote(app, config)
+            rows = note?.let { Checklist.rows(it.content) }.orEmpty().take(MAX_ROWS)
+        }
+    }
+
+    override fun onDestroy() = Unit
+    override fun getCount(): Int = rows.size
+    override fun getLoadingView(): RemoteViews? = null
+    override fun getViewTypeCount(): Int = 1
+    override fun getItemId(position: Int): Long = position.toLong()
+    override fun hasStableIds(): Boolean = false
+
+    override fun getViewAt(position: Int): RemoteViews {
+        val v = RemoteViews(context.packageName, R.layout.widget_list_item)
+        val n = note ?: return v
+        val row = rows.getOrNull(position) ?: return v
+        val p = palette(context, config)
+        val s = config.textScale
+        v.setViewVisibility(R.id.item_meta, View.GONE)
+        when (row) {
+            is ChecklistRow.Text -> {
+                v.setViewVisibility(R.id.item_check, View.GONE)
+                v.text(R.id.item_title, row.text, p.secondary, 13f, s, p)
+                v.setOnClickFillInIntent(R.id.item_body, Intent().apply {
+                    putExtra(WidgetItemActivity.EXTRA_KIND, WidgetItemActivity.KIND_NOTE_OPEN)
+                    putExtra(WidgetItemActivity.EXTRA_NOTE, n.id)
+                })
+            }
+            is ChecklistRow.Item -> {
+                v.setViewVisibility(R.id.item_check, View.VISIBLE)
+                v.setImageViewResource(R.id.item_check, if (row.checked) R.drawable.ic_widget_checked else R.drawable.ic_widget_unchecked)
+                v.color(R.id.item_check, "setColorFilter", p.accent, p)
+                v.setContentDescription(R.id.item_check,
+                    context.getString(if (row.checked) R.string.widget_uncheck_item else R.string.widget_check_item, row.text))
+                v.text(R.id.item_title, row.text, if (row.checked) p.secondary else p.text, 14f, s, p)
+                val toggle = Intent().apply {
+                    putExtra(WidgetItemActivity.EXTRA_KIND, WidgetItemActivity.KIND_NOTE_ITEM)
+                    putExtra(WidgetItemActivity.EXTRA_NOTE, n.id)
+                    putExtra(WidgetItemActivity.EXTRA_ITEM, row.index)
+                    putExtra(WidgetItemActivity.EXTRA_TEXT, row.text)
+                    putExtra(WidgetItemActivity.EXTRA_CHECKED, row.checked)
+                }
+                v.setOnClickFillInIntent(R.id.item_check, toggle)
+                v.setOnClickFillInIntent(R.id.item_body, toggle)
+            }
+        }
+        return v
+    }
+
+    companion object {
+        private const val MAX_ROWS = 100
     }
 }
 

@@ -401,6 +401,12 @@ class NoteEditorViewModel(c: AppContainer, private val route: Route.NoteEditor) 
         _focus.value = null
     }
 
+    override fun moveItem(key: Long, delta: Int): Boolean {
+        if (!body.move(key, delta)) return false
+        bodyChanged()
+        return true
+    }
+
     /** Checklist button: see [ChecklistEditor.toggleChecklist]. Losing check marks can be undone. */
     fun toggleChecklist(focusKey: Long?, selectionStart: Int, selectionEnd: Int) {
         val before = body.content()

@@ -1,5 +1,7 @@
 package ir.yadino.app.ui.notes
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,10 +28,13 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,13 +43,20 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -56,6 +69,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import ir.yadino.app.R
 import ir.yadino.app.ui.theme.LocalFormatter
 import ir.yadino.domain.notes.Checklist
@@ -79,6 +93,31 @@ interface NoteBodyActions {
     fun removeBlock(key: Long, moveFocus: Boolean)
     fun addItem()
     fun consumeFocus()
+
+    /** Moves an item one place up (-1) or down (+1) within its list; false if it cannot move. */
+    fun moveItem(key: Long, delta: Int): Boolean
+}
+
+/**
+ * Drag state of checklist rows. The body is a plain Column (text fields keep their focus),
+ * so the row heights needed to decide when a dragged row passes its neighbour are kept here.
+ */
+@Stable
+class ChecklistDragState {
+    var draggingKey by mutableStateOf<Long?>(null)
+    var offset by mutableFloatStateOf(0f)
+    internal val heights = HashMap<Long, Int>()
+
+    // the neighbour just passed, until the new order has been composed
+    internal var passedDown: Long? = null
+    internal var passedUp: Long? = null
+
+    internal fun stop() {
+        draggingKey = null
+        offset = 0f
+        passedDown = null
+        passedUp = null
+    }
 }
 
 /**
@@ -95,13 +134,18 @@ fun NoteBodyEditor(
 ) {
     val onlyText = blocks.size == 1 && blocks[0].block is NoteBlock.Text
     val items = blocks.mapNotNull { it.block as? NoteBlock.Item }
+    val drag = remember { ChecklistDragState() }
     Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        blocks.forEach { entry ->
+        blocks.forEachIndexed { index, entry ->
             key(entry.key) {
                 val request = focusRequest?.takeIf { it.key == entry.key }
                 when (val b = entry.block) {
                     is NoteBlock.Text -> TextBlockField(entry.key, b.text, onlyText, request, focus, actions, fieldColors)
-                    is NoteBlock.Item -> ItemRow(entry.key, b, request, focus, actions)
+                    is NoteBlock.Item -> ItemRow(
+                        entry.key, b, request, focus, actions, drag,
+                        previousItem = blocks.getOrNull(index - 1)?.takeIf { it.block is NoteBlock.Item }?.key,
+                        nextItem = blocks.getOrNull(index + 1)?.takeIf { it.block is NoteBlock.Item }?.key,
+                    )
                 }
             }
         }
@@ -180,21 +224,95 @@ private fun TextBlockField(
     )
 }
 
+/**
+ * One checklist item: drag handle (when it has a neighbouring item), checkbox, text and remove
+ * button. Dragging the handle moves the item within its list; TalkBack offers the same moves
+ * as custom actions on the checkbox.
+ */
 @Composable
-private fun ItemRow(blockKey: Long, item: NoteBlock.Item, request: ChecklistEditor.Focus?, focus: NoteBodyFocus, actions: NoteBodyActions) {
+private fun ItemRow(
+    blockKey: Long,
+    item: NoteBlock.Item,
+    request: ChecklistEditor.Focus?,
+    focus: NoteBodyFocus,
+    actions: NoteBodyActions,
+    drag: ChecklistDragState,
+    previousItem: Long?,
+    nextItem: Long?,
+) {
     val requester = remember { FocusRequester() }
     val (value, setValue) = rememberBlockValue(blockKey, item.text)
     FocusOnRequest(request, requester, item.text, setValue, actions)
     val emptyLabel = stringResource(R.string.checklist_item_hint)
+    val moveUp = stringResource(R.string.move_up)
+    val moveDown = stringResource(R.string.move_down)
     val colors = MaterialTheme.colorScheme
+    val haptics = LocalHapticFeedback.current
+    val previous by rememberUpdatedState(previousItem)
+    val next by rememberUpdatedState(nextItem)
+    val dragging = drag.draggingKey == blockKey
     val style: TextStyle = MaterialTheme.typography.bodyLarge.merge(
         if (item.checked) TextStyle(color = colors.outline, textDecoration = TextDecoration.LineThrough) else TextStyle(color = colors.onSurface),
     )
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 4.dp)) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .onSizeChanged { drag.heights[blockKey] = it.height }
+            .zIndex(if (dragging) 1f else 0f)
+            .graphicsLayer { translationY = if (drag.draggingKey == blockKey) drag.offset else 0f }
+            .background(if (dragging) colors.surfaceContainerHighest else Color.Transparent, MaterialTheme.shapes.small)
+            .padding(start = 4.dp),
+    ) {
+        if (previousItem != null || nextItem != null) {
+            Box(
+                Modifier.size(width = 24.dp, height = 40.dp).pointerInput(blockKey) {
+                    detectVerticalDragGestures(
+                        onDragStart = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            drag.stop()
+                            drag.draggingKey = blockKey
+                        },
+                        onVerticalDrag = { change, amount ->
+                            change.consume()
+                            drag.offset += amount
+                            val down = next
+                            val up = previous
+                            if (drag.offset > 0 && down != null && down != drag.passedDown) {
+                                val h = drag.heights[down] ?: 0
+                                if (h > 0 && drag.offset > h / 2f && actions.moveItem(blockKey, 1)) {
+                                    drag.offset -= h
+                                    drag.passedDown = down
+                                    drag.passedUp = null
+                                }
+                            } else if (drag.offset < 0 && up != null && up != drag.passedUp) {
+                                val h = drag.heights[up] ?: 0
+                                if (h > 0 && -drag.offset > h / 2f && actions.moveItem(blockKey, -1)) {
+                                    drag.offset += h
+                                    drag.passedUp = up
+                                    drag.passedDown = null
+                                }
+                            }
+                        },
+                        onDragEnd = { drag.stop() },
+                        onDragCancel = { drag.stop() },
+                    )
+                },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Default.DragIndicator, null, Modifier.size(18.dp), tint = colors.outline)
+            }
+        }
         Checkbox(
             checked = item.checked,
             onCheckedChange = { actions.toggleItem(blockKey) },
-            modifier = Modifier.semantics { contentDescription = item.text.ifBlank { emptyLabel } },
+            modifier = Modifier.semantics {
+                contentDescription = item.text.ifBlank { emptyLabel }
+                customActions = listOfNotNull(
+                    previousItem?.let { CustomAccessibilityAction(moveUp) { actions.moveItem(blockKey, -1) } },
+                    nextItem?.let { CustomAccessibilityAction(moveDown) { actions.moveItem(blockKey, 1) } },
+                )
+            },
         )
         BasicTextField(
             value = value,

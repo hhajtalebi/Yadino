@@ -232,7 +232,7 @@ S = {
 "widget_latest_note": "آخرین یادداشت",
 "widget_new_note": "یادداشت جدید",
 "widget_next_month": "ماه بعد",
-"widget_note_desc": "نمایش یک یادداشت و نوشتن سریع یادداشت جدید",
+"widget_note_desc": "نمایش یک یادداشت — با فهرست تیک‌داری که روی همین ابزارک علامت می‌خورد — و نوشتن سریع یادداشت جدید",
 "widget_note_empty_body": "برای نوشتن یادداشت جدید بزنید",
 "widget_note_empty_title": "یادداشت سریع",
 "widget_note_name": "یادداشت سریع",

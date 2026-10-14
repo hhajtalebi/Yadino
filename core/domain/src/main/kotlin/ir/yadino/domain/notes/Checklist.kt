@@ -11,6 +11,12 @@ sealed interface NoteBlock {
 /** Checklist items of a note body that can become subtasks. */
 data class ChecklistSplit(val text: String, val items: List<NoteBlock.Item>)
 
+/** One row of a note shown as a list (home-screen widget): a paragraph or the [Item.index]-th item. */
+sealed interface ChecklistRow {
+    data class Text(val text: String) : ChecklistRow
+    data class Item(val index: Int, val text: String, val checked: Boolean) : ChecklistRow
+}
+
 /**
  * Checklists inside note bodies.
  *
@@ -120,6 +126,33 @@ object Checklist {
     fun linesToItems(text: String): List<NoteBlock.Item> {
         val lines = text.split('\n').filter { it.isNotBlank() }
         return if (lines.isEmpty()) listOf(NoteBlock.Item("")) else lines.map { parseLine(it) ?: NoteBlock.Item(it.trim()) }
+    }
+
+    /** Rows for a list view: paragraphs (blank lines dropped) and numbered items, in body order. */
+    fun rows(content: String): List<ChecklistRow> {
+        var index = -1
+        return parse(content).mapNotNull { b ->
+            when (b) {
+                is NoteBlock.Text -> b.text.trim().takeIf { it.isNotEmpty() }?.let { ChecklistRow.Text(it) }
+                is NoteBlock.Item -> {
+                    index++
+                    ChecklistRow.Item(index, b.text, b.checked)
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggles an item that was displayed elsewhere (a widget) as item [index] with [text] and
+     * state [wasChecked]. If the body changed since, the item is looked up by text and state.
+     * Returns null when nothing should change: the item is gone, or it already has the new
+     * state (a repeated tap on a list that has not refreshed yet).
+     */
+    fun toggleShown(content: String, index: Int, text: String, wasChecked: Boolean): String? {
+        val all = items(content)
+        val target = if (all.getOrNull(index)?.text == text) index else all.indexOfFirst { it.text == text && it.checked == wasChecked }
+        if (target < 0 || all[target].checked != wasChecked) return null
+        return toggle(content, target)
     }
 
     /** Removes checked items. */

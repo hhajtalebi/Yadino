@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import ir.yadino.app.ui.notes.NoteBodyActions
 import ir.yadino.app.ui.notes.NoteBodyEditor
 import ir.yadino.app.ui.notes.NoteBodyFocus
@@ -21,6 +23,7 @@ import ir.yadino.app.ui.theme.YadinoTheme
 import ir.yadino.domain.model.AppSettings
 import ir.yadino.domain.notes.ChecklistEditor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,6 +57,7 @@ class NoteChecklistUiTest {
         override fun consumeFocus() {
             focus = null
         }
+        override fun moveItem(key: Long, delta: Int): Boolean = editor.move(key, delta).also { if (it) changed() }
     }
 
     private fun show(host: Host) {
@@ -100,5 +104,19 @@ class NoteChecklistUiTest {
         compose.runOnIdle { assertEquals("- [x] شیر\n- [ ] ", host.editor.content()) }
         compose.onNode(isFocused()).performTextInput("نان")
         compose.runOnIdle { assertEquals("- [x] شیر\n- [ ] نان", host.editor.content()) }
+    }
+
+    @Test
+    fun itemsCanBeReorderedWithAccessibilityActions() {
+        val host = Host("- [ ] شیر\n- [ ] نان\n- [ ] میوه")
+        show(host)
+        val moveDown = InstrumentationRegistry.getInstrumentation().targetContext.getString(ir.yadino.app.R.string.move_down)
+        val node = compose.onNodeWithContentDescription("شیر").fetchSemanticsNode()
+        val action = node.config[SemanticsActions.CustomActions].first { it.label == moveDown }
+        compose.runOnIdle { action.action() }
+        compose.runOnIdle { assertEquals("- [ ] نان\n- [ ] شیر\n- [ ] میوه", host.editor.content()) }
+        // the last item offers no "down" any more
+        val last = compose.onNodeWithContentDescription("میوه").fetchSemanticsNode()
+        assertFalse(last.config[SemanticsActions.CustomActions].any { it.label == moveDown })
     }
 }

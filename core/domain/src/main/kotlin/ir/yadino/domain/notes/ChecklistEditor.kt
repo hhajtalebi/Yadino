@@ -101,6 +101,23 @@ class ChecklistEditor(content: String = "") {
         return Focus(entries[(i - 1).coerceAtLeast(0)].key)
     }
 
+    /** True when item [key] has another item next to it in direction [delta] (-1 up, +1 down). */
+    fun canMove(key: Long, delta: Int): Boolean {
+        val i = indexOf(key)
+        return i >= 0 && (delta == 1 || delta == -1) && entries[i].block is NoteBlock.Item && entries.getOrNull(i + delta)?.block is NoteBlock.Item
+    }
+
+    /**
+     * Moves an item one place up (-1) or down (+1) within its run of consecutive items (it
+     * never jumps over a text paragraph). Keys are kept, so focus and drag state survive.
+     */
+    fun move(key: Long, delta: Int): Boolean {
+        if (!canMove(key, delta)) return false
+        val i = indexOf(key)
+        entries = entries.toMutableList().also { java.util.Collections.swap(it, i, i + delta) }
+        return true
+    }
+
     /** Appends an empty item at the end; a trailing blank text block is replaced by it. */
     fun appendItem(): Focus {
         val list = entries.toMutableList()

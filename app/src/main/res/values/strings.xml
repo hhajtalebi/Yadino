@@ -867,6 +867,7 @@
     <string name="widget_all_done">همه کارها انجام شد 🎉</string>
     <string name="widget_calendar_desc">تقویم ماهانه شمسی با نشانگر کارها و تعطیلات</string>
     <string name="widget_calendar_name">تقویم شمسی</string>
+    <string name="widget_check_item">علامت زدن «%1$s»</string>
     <string name="widget_clock_desc">ساعت، تاریخ کامل شمسی و مناسبت روز</string>
     <string name="widget_clock_name">تاریخ و ساعت</string>
     <string name="widget_content_countdown">موعد نمایش داده‌شده</string>
@@ -905,7 +906,7 @@
     <string name="widget_latest_note">آخرین یادداشت</string>
     <string name="widget_new_note">یادداشت جدید</string>
     <string name="widget_next_month">ماه بعد</string>
-    <string name="widget_note_desc">نمایش یک یادداشت و نوشتن سریع یادداشت جدید</string>
+    <string name="widget_note_desc">نمایش یک یادداشت — با فهرست تیک‌داری که روی همین ابزارک علامت می‌خورد — و نوشتن سریع یادداشت جدید</string>
     <string name="widget_note_empty_body">برای نوشتن یادداشت جدید بزنید</string>
     <string name="widget_note_empty_title">یادداشت سریع</string>
     <string name="widget_note_name">یادداشت سریع</string>
@@ -923,6 +924,7 @@
     <string name="widget_toggle_task">تغییر وضعیت انجام</string>
     <string name="widget_top_goal">مهم‌ترین هدف فعال</string>
     <string name="widget_types">انواع ابزارک</string>
+    <string name="widget_uncheck_item">برداشتن علامت «%1$s»</string>
     <string name="work_days">روزهای کاری</string>
     <string name="work_days_desc">در نمای روزانه تقویم و میان‌بر «روزهای کاری» در تکرار</string>
     <string name="work_end">پایان ساعت کاری</string>

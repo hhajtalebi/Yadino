@@ -65,6 +65,7 @@ import ir.yadino.domain.model.Goal
 import ir.yadino.domain.model.GoalStatus
 import ir.yadino.domain.model.Note
 import ir.yadino.domain.model.NoteFilters
+import ir.yadino.domain.notes.Checklist
 import ir.yadino.domain.planning.CountdownTarget
 import ir.yadino.domain.planning.Countdowns
 import kotlinx.coroutines.launch
@@ -254,16 +255,23 @@ class WidgetItemActivity : ComponentActivity() {
         const val EXTRA_KIND = "kind"
         const val EXTRA_TASK = "task"
         const val EXTRA_HABIT = "habit"
+        const val EXTRA_NOTE = "note"
+        const val EXTRA_ITEM = "item"
+        const val EXTRA_TEXT = "text"
+        const val EXTRA_CHECKED = "checked"
         const val KIND_TOGGLE = "toggle"
         const val KIND_OPEN = "open"
         const val KIND_HABIT_CHECK_IN = "habit_check_in"
         const val KIND_HABIT_OPEN = "habit_open"
+        const val KIND_NOTE_ITEM = "note_item"
+        const val KIND_NOTE_OPEN = "note_open"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val taskId = intent?.getStringExtra(EXTRA_TASK)
         val habitId = intent?.getStringExtra(EXTRA_HABIT)
+        val noteId = intent?.getStringExtra(EXTRA_NOTE)
         val kind = intent?.getStringExtra(EXTRA_KIND)
         val app = application as YadinoApplication
         val c = app.container
@@ -277,6 +285,18 @@ class WidgetItemActivity : ComponentActivity() {
                 c.habits.get(habitId)?.takeIf { !it.isArchived }?.let { c.habits.checkIn(it, c.clock.today()) }
             }
             habitId != null -> open(Route.HabitDetail(habitId))
+            // A checklist item of the quick-note widget: written to the note right away.
+            noteId != null && kind == KIND_NOTE_ITEM -> {
+                val index = intent.getIntExtra(EXTRA_ITEM, -1)
+                val text = intent.getStringExtra(EXTRA_TEXT).orEmpty()
+                val wasChecked = intent.getBooleanExtra(EXTRA_CHECKED, false)
+                app.appScope.launch {
+                    val note = c.notes.get(noteId) ?: return@launch
+                    val content = Checklist.toggleShown(note.content, index, text, wasChecked)
+                    if (content != null) c.notes.save(note.copy(content = content)) else c.widgets.requestUpdate()
+                }
+            }
+            noteId != null -> open(Route.NoteEditor(noteId))
         }
         finish()
         @Suppress("DEPRECATION")

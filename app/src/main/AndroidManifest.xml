@@ -212,6 +212,10 @@
             android:name=".widget.HabitListWidgetService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
+        <service
+            android:name=".widget.NoteChecklistWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <!-- WorkManager is initialised on demand (Configuration.Provider in YadinoApplication). -->
         <provider

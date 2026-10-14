@@ -76,6 +76,16 @@
                 android:textStyle="normal"
                 android:textDirection="rtl"
                 android:ellipsize="end" />
+            <!-- Notes with a checklist: rows with tappable check marks (collection). -->
+            <ListView
+                android:id="@+id/widget_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_above="@id/w_meta"
+                android:layout_alignParentTop="true"
+                android:divider="@null"
+                android:dividerHeight="0dp"
+                android:visibility="gone" />
         </RelativeLayout>
     </LinearLayout>
 </FrameLayout>

@@ -6,6 +6,7 @@ import ir.yadino.domain.model.NoteCardText
 import ir.yadino.domain.model.NoteFilters
 import ir.yadino.domain.model.NoteSort
 import ir.yadino.domain.notes.Checklist
+import ir.yadino.domain.notes.ChecklistRow
 import ir.yadino.domain.notes.NoteBlock
 import ir.yadino.domain.validation.Limits
 import org.junit.Assert.assertEquals
@@ -147,5 +148,33 @@ class ChecklistTest {
         assertEquals("الف".repeat(30).take(20) + "…", card.title)
         assertEquals(long, card.body)
         assertEquals(NoteCardText("", ""), NoteFilters.card(note("", "  \n ")))
+    }
+
+    @Test
+    fun widgetRowsNumberTheItems() {
+        assertEquals(
+            listOf(
+                ChecklistRow.Text("خرید هفته"),
+                ChecklistRow.Item(0, "شیر", false),
+                ChecklistRow.Item(1, "نان", true),
+                ChecklistRow.Text("یادم باشد\nکیسه ببرم"),
+                ChecklistRow.Item(2, "میوه", false),
+            ),
+            Checklist.rows(mixed),
+        )
+        assertEquals(emptyList<ChecklistRow>(), Checklist.rows("  \n"))
+    }
+
+    @Test
+    fun toggleFromAWidgetIsSafeAgainstChangesAndRepeatedTaps() {
+        val once = Checklist.toggleShown(mixed, 2, "میوه", wasChecked = false)!!
+        assertEquals(mixed.replace("- [ ] میوه", "- [x] میوه"), once)
+        // the same (stale) tap again changes nothing
+        assertNull(Checklist.toggleShown(once, 2, "میوه", wasChecked = false))
+        // an item was added on top in the meantime: found by its text
+        val edited = "- [ ] تخم‌مرغ\n$mixed"
+        assertEquals(edited.replace("- [x] نان", "- [ ] نان"), Checklist.toggleShown(edited, 1, "نان", wasChecked = true))
+        // the item is gone
+        assertNull(Checklist.toggleShown("- [ ] شیر", 1, "نان", wasChecked = true))
     }
 }

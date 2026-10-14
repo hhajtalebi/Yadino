@@ -206,4 +206,21 @@ class ChecklistEditorTest {
         e.reset("- [ ] الف")
         assertTrue(e.keyOf(0) != old)
     }
+
+    @Test
+    fun itemsMoveWithinTheirRunAndKeepTheirKeys() {
+        val e = ChecklistEditor("خرید\n- [ ] شیر\n- [x] نان\n- [ ] میوه\nپایان\n- [ ] جدا")
+        val milk = e.keyOf(1)
+        assertFalse(e.canMove(milk, -1)) // a paragraph above
+        assertTrue(e.move(milk, 1))
+        assertEquals("خرید\n- [x] نان\n- [ ] شیر\n- [ ] میوه\nپایان\n- [ ] جدا", e.content())
+        assertEquals(milk, e.keyOf(2))
+        assertTrue(e.move(milk, 1))
+        assertFalse(e.move(milk, 1)) // never jumps over the paragraph to the next list
+        assertEquals("خرید\n- [x] نان\n- [ ] میوه\n- [ ] شیر\nپایان\n- [ ] جدا", e.content())
+        assertTrue(e.move(milk, -1))
+        assertFalse(e.move(e.keyOf(0), 1)) // text blocks do not move
+        assertFalse(e.move(milk, 2))
+        assertFalse(e.move(-42L, 1))
+    }
 }

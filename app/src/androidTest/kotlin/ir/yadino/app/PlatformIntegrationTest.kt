@@ -38,7 +38,7 @@ class PlatformIntegrationTest {
             Bundle().apply { putInt("appWidgetMinWidth", 300); putInt("appWidgetMaxHeight", 150) },
             Bundle().apply { putInt("appWidgetMinWidth", 300); putInt("appWidgetMaxHeight", 400) },
         )
-        val providers = listOf(CalendarWidgetProvider(), ClockWidgetProvider(), GoalWidgetProvider(), QuickNoteWidgetProvider(), CountdownWidgetProvider())
+        val providers = listOf(CalendarWidgetProvider(), ClockWidgetProvider(), GoalWidgetProvider(), CountdownWidgetProvider())
         for (provider in providers) {
             for (options in sizes) {
                 val views = provider.render(context, app, 4242, options)
@@ -46,10 +46,12 @@ class PlatformIntegrationTest {
             }
         }
         // Collection widgets bind their list only inside a real AppWidgetHostView:
-        // render every size, inflate the small (list-free) layout.
-        val habits = HabitsWidgetProvider()
-        for (options in sizes) assertNotNull(habits.render(context, app, 4243, options))
-        assertNotNull(habits.render(context, app, 4243, sizes[0]).apply(context, FrameLayout(context)))
+        // render every size, inflate the small (list-free) layout. (The quick note is a
+        // collection when the shown note has a checklist.)
+        for (provider in listOf(HabitsWidgetProvider(), QuickNoteWidgetProvider())) {
+            for (options in sizes) assertNotNull(provider.render(context, app, 4243, options))
+            assertNotNull(provider.render(context, app, 4243, sizes[0]).apply(context, FrameLayout(context)))
+        }
     }
 
     @Test
