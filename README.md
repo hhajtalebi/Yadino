@@ -8,7 +8,7 @@
 
 > *Yadino is a Persian-first, offline-first Android planner (tasks, notes with checklists, goals, habits, reusable day/week plan templates) built on an exact Solar Hijri calendar, with a drag-to-reschedule day timeline, eight home-screen widgets, optional encrypted backups (file, folder, Google Drive) and CSV export. Kotlin · Jetpack Compose · Material 3 · Room · DataStore · WorkManager.*
 
-> 📲 **دریافت نسخه آزمایشی:** [صفحه دانلود و راهنمای نصب](https://hhajtalebi.github.io/Yadino/) — فایل APK را روی گوشی دانلود و نصب کنید (اندروید ۸ و بالاتر).
+> 📲 **دریافت نسخه آزمایشی (اندروید ۸ و بالاتر):** [صفحه دریافت و راهنمای نصب](https://hhajtalebi.github.io/Yadino/) · [دانلود مستقیم APK](release/yadino-1.3.1-release.apk)
 
 ---
 
@@ -98,7 +98,7 @@
 
 ## دریافت و نصب
 
-ساده‌ترین راه، [صفحه دریافت](https://hhajtalebi.github.io/Yadino/) است: دکمه دانلود، راهنمای نصب قدم‌به‌قدم، کد QR برای باز کردن صفحه روی گوشی، فهرست موارد قابل آزمون و راهنمای گزارش خطا. فایل‌های APK در پوشه [`release/`](release/) هم هستند:
+ساده‌ترین راه، [صفحه دریافت](https://hhajtalebi.github.io/Yadino/) است: دکمه دانلود، راهنمای نصب قدم‌به‌قدم، کد QR برای باز کردن صفحه روی گوشی، فهرست موارد قابل آزمون و راهنمای گزارش خطا. این صفحه (`index.html`) با GitHub Pages منتشر می‌شود؛ فعال‌سازی آن یک بار از تنظیمات مخزن انجام می‌شود ([راهنما](docs/BUILD.md)). فایل‌های APK در پوشه [`release/`](release/) هم هستند:
 
 | فایل | توضیح |
 |---|---|
