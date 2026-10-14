@@ -232,7 +232,7 @@ fun TasksScreen(route: Route.Tasks) {
             if (state.loaded && state.tasks.isEmpty()) {
                 EmptyState(Icons.Default.TaskAlt, stringResource(R.string.tasks_empty_title), stringResource(R.string.tasks_empty_message))
             }
-            LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 8.dp, end = 8.dp, bottom = 96.dp)) {
+            LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 8.dp, end = 8.dp, bottom = 96.dp)) {
                 itemsIndexed(state.tasks, key = { _, t -> t.id }) { index, task ->
                     val cat = state.categories.firstOrNull { it.id == task.categoryId }
                     Box {

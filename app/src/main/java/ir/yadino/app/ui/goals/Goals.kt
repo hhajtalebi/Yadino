@@ -244,7 +244,7 @@ private fun GoalsList(state: GoalsState, vm: GoalsViewModel, layout: ListLayout)
         if (state.loaded && state.goals.isEmpty()) {
             EmptyState(Icons.Default.Flag, stringResource(R.string.goals_empty_title), stringResource(R.string.goals_empty_message))
         }
-        LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(state.goals, key = { it.goal.id }) { item ->
                 val g = item.goal
                 val p = item.progress
@@ -292,7 +292,7 @@ private fun HabitsList(state: GoalsState, vm: GoalsViewModel) {
         if (state.loaded && state.habits.isEmpty()) {
             EmptyState(Icons.Default.Repeat, stringResource(R.string.habits_empty_title), stringResource(R.string.habits_empty_message))
         }
-        LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(state.habits, key = { it.habit.id }) { (h, s) ->
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { nav.navigate(Route.HabitDetail(h.id)) },

@@ -5,8 +5,11 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +26,7 @@ import ir.yadino.app.ui.navigation.Navigator
 import ir.yadino.app.ui.navigation.Route
 import ir.yadino.app.ui.onboarding.OnboardingScreen
 import ir.yadino.app.ui.theme.YadinoTheme
+import ir.yadino.domain.model.ThemeMode
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -39,6 +43,10 @@ object LocaleHelper {
 }
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private val LIGHT_SCRIM = android.graphics.Color.argb(0xE6, 0xFF, 0xFF, 0xFF)
+        private val DARK_SCRIM = android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)
+    }
 
     private val pendingRoute = mutableStateOf<Route?>(null)
 
@@ -58,6 +66,19 @@ class MainActivity : ComponentActivity() {
             if (settings == null) {
                 Box(Modifier.fillMaxSize().background(Color.Transparent))
                 return@setContent
+            }
+            val dark = when (settings.themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            // keep status/navigation bar icons readable when the app theme differs from the system theme
+            DisposableEffect(dark) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark },
+                    navigationBarStyle = SystemBarStyle.auto(LIGHT_SCRIM, DARK_SCRIM) { dark },
+                )
+                onDispose { }
             }
             YadinoTheme(settings) {
                 val startTab = { Navigator.tabFor(container.settings.currentOrDefault().startScreen) }

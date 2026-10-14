@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.widget.RemoteViews
@@ -38,8 +39,30 @@ internal fun widgetSize(options: Bundle?, mediumMinWidth: Int = 200, largeMinHei
     }
 }
 
-/** Resolved colours for a widget instance. */
-class WidgetPalette(val dark: Boolean, val followSystem: Boolean, val bg: Int, val text: Int, val secondary: Int, val accent: Int, val holiday: Int, val alpha: Int)
+/** Resolved colours for a widget instance (both day and night variants are kept). */
+class WidgetPalette(
+    val dark: Boolean,
+    val followSystem: Boolean,
+    val bg: Int, val text: Int, val secondary: Int, val accent: Int, val holiday: Int,
+    val alpha: Int,
+    private val lightSet: IntArray,
+    private val darkSet: IntArray,
+) {
+    /**
+     * For a colour produced by this palette returns its (day, night) pair so the launcher
+     * can switch automatically with the system theme (Android 12+). Colours derived with an
+     * alpha component (e.g. faded days of adjacent months) are mapped as well.
+     */
+    fun dayNight(color: Int): Pair<Int, Int>? {
+        val current = if (dark) darkSet else lightSet
+        val rgb = color and 0x00FFFFFF
+        val a = color ushr 24
+        val i = current.indexOfFirst { (it and 0x00FFFFFF) == rgb }
+        if (i < 0) return null
+        fun withAlpha(c: Int) = (c and 0x00FFFFFF) or (a shl 24)
+        return withAlpha(lightSet[i]) to withAlpha(darkSet[i])
+    }
+}
 
 internal fun palette(context: Context, config: WidgetConfig): WidgetPalette {
     val systemDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
@@ -49,32 +72,40 @@ internal fun palette(context: Context, config: WidgetConfig): WidgetPalette {
         else -> systemDark
     }
     fun c(id: Int) = ContextCompat.getColor(context, id)
-    val accent = when (config.accent) {
+    fun accentFor(d: Boolean) = when (config.accent) {
         "GOLD" -> c(R.color.widget_gold)
-        "BLUE" -> if (dark) 0xFF8CC8FF.toInt() else 0xFF1D5C8C.toInt()
-        "ROSE" -> if (dark) 0xFFF3A6B5.toInt() else 0xFF9C3550.toInt()
-        else -> c(if (dark) R.color.widget_accent_dark else R.color.widget_accent_light)
+        "BLUE" -> if (d) 0xFF8CC8FF.toInt() else 0xFF1D5C8C.toInt()
+        "ROSE" -> if (d) 0xFFF3A6B5.toInt() else 0xFF9C3550.toInt()
+        else -> c(if (d) R.color.widget_accent_dark else R.color.widget_accent_light)
     }
+    // order: bg, text, secondary, accent, holiday
+    val lightSet = intArrayOf(c(R.color.widget_bg_light), c(R.color.widget_text_light), c(R.color.widget_text_secondary_light), accentFor(false), c(R.color.widget_holiday))
+    val darkSet = intArrayOf(c(R.color.widget_bg_dark), c(R.color.widget_text_dark), c(R.color.widget_text_secondary_dark), accentFor(true), 0xFFF08A80.toInt())
+    val set = if (dark) darkSet else lightSet
     return WidgetPalette(
         dark = dark,
         followSystem = config.theme == "SYSTEM",
-        bg = c(if (dark) R.color.widget_bg_dark else R.color.widget_bg_light),
-        text = c(if (dark) R.color.widget_text_dark else R.color.widget_text_light),
-        secondary = c(if (dark) R.color.widget_text_secondary_dark else R.color.widget_text_secondary_light),
-        accent = accent,
-        holiday = c(R.color.widget_holiday),
+        bg = set[0], text = set[1], secondary = set[2], accent = set[3], holiday = set[4],
         alpha = (config.opacity.coerceIn(0, 100) * 255 / 100),
+        lightSet = lightSet, darkSet = darkSet,
     )
 }
 
+/** Applies a colour through [method]; follows the system theme automatically on Android 12+. */
+internal fun RemoteViews.color(id: Int, method: String, color: Int, p: WidgetPalette) {
+    val pair = if (p.followSystem && Build.VERSION.SDK_INT >= 31) p.dayNight(color) else null
+    if (pair != null && Build.VERSION.SDK_INT >= 31) setColorInt(id, method, pair.first, pair.second)
+    else setInt(id, method, color)
+}
+
 internal fun RemoteViews.applyBackground(p: WidgetPalette) {
-    setInt(R.id.widget_bg, "setColorFilter", p.bg)
+    color(R.id.widget_bg, "setColorFilter", p.bg, p)
     setInt(R.id.widget_bg, "setImageAlpha", p.alpha)
 }
 
-internal fun RemoteViews.text(id: Int, value: CharSequence?, color: Int, sizeSp: Float, scale: Float) {
+internal fun RemoteViews.text(id: Int, value: CharSequence?, color: Int, sizeSp: Float, scale: Float, p: WidgetPalette? = null) {
     setTextViewText(id, value ?: "")
-    setTextColor(id, color)
+    if (p != null) color(id, "setTextColor", color, p) else setTextColor(id, color)
     setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, sizeSp * scale)
 }
 

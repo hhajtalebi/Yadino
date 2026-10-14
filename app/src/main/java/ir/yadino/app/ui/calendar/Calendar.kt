@@ -395,7 +395,7 @@ private fun WeekView(selected: LocalDate, data: CalendarData, vm: CalendarViewMo
             )
             IconButton(onClick = { onShift(1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.next_week)) }
         }
-        LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(days, key = { it.toEpochDay() }) { d ->
                 val items = plan[d].orEmpty()
                 val holiday = d.dayOfWeek == DayOfWeek.FRIDAY || IranianOccasions.isHoliday(JalaliDate.from(d), settings.lunarAdjustment)
@@ -452,7 +452,7 @@ private fun DayView(selected: LocalDate, data: CalendarData, vm: CalendarViewMod
             }
             HorizontalDivider()
         }
-        Box(Modifier.fillMaxWidth().verticalScroll(scroll).padding(bottom = 96.dp)) {
+        Box(Modifier.fillMaxWidth().weight(1f).verticalScroll(scroll).padding(bottom = 96.dp)) {
             Column {
                 for (h in 0 until 24) {
                     val work = h >= settings.workDayStart.hour && h < settings.workDayEnd.hour.coerceAtLeast(settings.workDayStart.hour + 1) &&

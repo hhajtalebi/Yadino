@@ -262,6 +262,7 @@ fun NotesScreen() {
                 EmptyState(Icons.AutoMirrored.Filled.StickyNote2, stringResource(R.string.notes_empty_title), stringResource(R.string.notes_empty_message))
             }
             LazyVerticalStaggeredGrid(
+                modifier = Modifier.weight(1f),
                 columns = StaggeredGridCells.Fixed(if (settings.noteLayout == ListLayout.GRID) 2 else 1),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 96.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

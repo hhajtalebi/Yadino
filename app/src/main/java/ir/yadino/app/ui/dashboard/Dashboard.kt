@@ -190,7 +190,9 @@ class DashboardViewModel(c: AppContainer) : YadinoViewModel(c) {
         }.sortedWith(compareByDescending<Pair<Goal, GoalProgress>> { it.first.priority.level }.thenBy { it.first.deadline ?: LocalDate.MAX })
         val active = notes.filter { !it.isArchived }
         val occasions = IranianOccasions.occasionsOf(JalaliDate.from(day), settings.occasionDisplay, settings.lunarAdjustment)
-        val todayPlan = if (settings.overdueBehavior == OverdueBehavior.SHOW_IN_TODAY) {
+        // Overdue tasks are merged into today's plan unless the dedicated section shows them.
+        val overdueSectionVisible = config.normalized().sections.any { it.section == DashboardSection.OVERDUE && it.visible }
+        val todayPlan = if (settings.overdueBehavior == OverdueBehavior.SHOW_IN_TODAY && !overdueSectionVisible) {
             plan + overdue.filter { o -> plan.none { it.task.id == o.id } }.map { PlannedItem(it, TaskFilters.effectiveDate(it) ?: day, false) }
         } else plan
         return DashboardState(

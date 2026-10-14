@@ -267,7 +267,7 @@ fun SearchScreen() {
                 colors = TextFieldDefaults.colors(focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh, unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focus),
             )
-            LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
+            LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
                 if (state.query.isNotBlank() && state.tasks.isEmpty() && state.notes.isEmpty() && state.goals.isEmpty() && state.habits.isEmpty()) {
                     item { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
